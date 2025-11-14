@@ -32,4 +32,201 @@
       <input id="participants" type="number" min="100" step="100" value="10000">
       <div class="muted" style="margin-top:8px">Number of questions</div>
       <input id="qcount" type="number" min="1" max="50" step="1" value="8">
-      <div class="muted" style="margin-top:8px">Questi
+      <div class="muted" style="margin-top:8px">Question template</div>
+      <input id="template" list="templates" type="text" placeholder="Type or choose (auto-fills when you add rows)">
+      <datalist id="templates">
+        <option>Which team will win the match?</option>
+        <option>How many corners will be taken?</option>
+        <option>How many shots on target for [Player]?</option>
+        <option>How many tackles will [Player] make?</option>
+        <option>In what minute will the first goal be scored?</option>
+        <option>Which listed player will receive a yellow card?</option>
+        <option>How many passes will [Player] complete?</option>
+      </datalist>
+    </div>
+
+    <div class="card">
+      <div class="muted" style="display:flex;align-items:center;gap:8px">
+        <span>Odds multiplier</span>
+        <span title="Explainer: This multiplies each DECIMAL odd before converting to probability (p = 1/(odds × multiplier)).
+Lowering the multiplier increases probabilities (easier), raising it decreases probabilities (harder).
+Use it as a global difficulty lever or to model margin/price drift.">(?)</span>
+      </div>
+      <div class="row" style="display:flex;gap:10px;align-items:center;margin-top:6px">
+        <input id="mult" type="range" min="0.50" max="2.00" step="0.01" value="1.00"><span id="multDisp" class="muted">×1.00</span>
+      </div>
+
+      <div class="muted" style="margin-top:10px">Quick actions</div>
+      <div style="display:flex;gap:8px;margin-top:6px">
+        <button id="addRow" class="btn">Add question</button>
+        <button id="clearRows" class="btn">Clear all</button>
+        <button id="example" class="btn">Load example</button>
+        <button id="export" class="btn">Export JSON</button>
+      </div>
+      <div id="status" class="muted" style="margin-top:6px"></div>
+    </div>
+  </div>
+
+  <div class="card" style="margin-top:12px">
+    <div class="muted">Questions (type to edit; odds = decimal for optimal pick)</div>
+    <div id="qlist"></div>
+  </div>
+
+  <div class="grid g3" style="margin-top:12px">
+    <div class="card"><div class="muted">Questions</div><div id="qstat" class="big">–</div></div>
+    <div class="card"><div class="muted">Combined optimal-path probability</div><div id="comb" class="big">–</div></div>
+    <div class="card"><div class="muted">Expected perfect winners @ <span id="pdisp"></span></div><div id="winners" class="big">–</div></div>
+  </div>
+
+  <div class="card" style="margin-top:12px">
+    <div class="muted">Expected users at each score (Poisson–binomial, independent questions)</div>
+    <table class="table" id="dist"></table>
+  </div>
+
+  <div class="card" style="margin-top:12px">
+    <div class="muted" style="margin-bottom:6px">
+      Bar chart below shows the <b>implied probability (%) per question</b> for the optimal pick (after applying the odds multiplier).
+      X-axis = questions (first 30), Y-axis = implied probability. Higher bars mean that question is likelier to be answered correctly by an optimal picker.
+    </div>
+    <svg id="chart" class="chart" viewBox="0 0 1000 300" preserveAspectRatio="none"></svg>
+  </div>
+</div>
+
+<script>
+let rows = [];
+const templateInput = document.getElementById('template');
+const participants = document.getElementById('participants');
+const qcount = document.getElementById('qcount');
+const qlist = document.getElementById('qlist');
+const mult = document.getElementById('mult');
+const multDisp = document.getElementById('multDisp');
+const qstat = document.getElementById('qstat');
+const comb = document.getElementById('comb');
+const pdisp = document.getElementById('pdisp');
+const winners = document.getElementById('winners');
+const chart = document.getElementById('chart');
+const distTbl = document.getElementById('dist');
+const statusEl = document.getElementById('status');
+
+function addRow(q='', odds=2.50, a='Optimal pick'){
+  rows.push({q, odds: Number(odds) || 2.50, a});
+  renderRows();
+}
+function removeRow(idx){
+  rows.splice(idx,1);
+  render();
+}
+function ensureCount(n){
+  while(rows.length < n){
+    const tmpl = templateInput.value.trim();
+    addRow(tmpl || `Question ${rows.length+1}`, 2.50, 'Optimal pick');
+  }
+  while(rows.length > n){ rows.pop(); }
+  renderRows();
+}
+function renderRows(){
+  qlist.innerHTML = '';
+  rows.forEach((r, i) => {
+    const wrap = document.createElement('div');
+    wrap.className = 'qrow';
+    wrap.innerHTML = `
+      <input type="text" list="templates" value="${r.q.replaceAll('"','&quot;')}" aria-label="Question text">
+      <input type="number" step="0.01" min="1.01" value="${r.odds.toFixed(2)}" aria-label="Decimal odds">
+      <input type="text" value="${r.a.replaceAll('"','&quot;')}" aria-label="Optimal answer label">
+      <button class="btn" aria-label="Remove">✕</button>
+    `;
+    const [qi, oi, ai, rm] = wrap.querySelectorAll('input,button');
+    qi.addEventListener('input', ()=>{ r.q = qi.value; render(); });
+    oi.addEventListener('input', ()=>{ r.odds = Math.max(1.01, Number(oi.value||1.01)); oi.value = r.odds.toFixed(2); render(); });
+    ai.addEventListener('input', ()=>{ r.a = ai.value; render(); });
+    rm.addEventListener('click', ()=> removeRow(i));
+    qlist.appendChild(wrap);
+  });
+  render();
+}
+function poissonBinomialPMF(ps){
+  const n = ps.length;
+  const dp = new Float64Array(n+1);
+  dp[0] = 1.0;
+  for (let i=0;i<n;i++){
+    const p = ps[i];
+    for (let k=i+1;k>=0;k--){
+      const stay = dp[k]*(1-p);
+      const take = k>0 ? dp[k-1]*p : 0.0;
+      dp[k] = stay + take;
+    }
+  }
+  return Array.from(dp);
+}
+function render(){
+  multDisp.textContent = '×' + Number(mult.value).toFixed(2);
+  pdisp.textContent = Number(participants.value).toLocaleString();
+  qstat.textContent = rows.length.toString();
+  const m = Number(mult.value);
+  const ps = rows.map(r => 1.0 / (Math.max(1.01, r.odds) * m));
+  let combined = 1.0;
+  for (const p of ps) combined *= p;
+  comb.textContent = (combined*100).toFixed(6) + '%';
+  winners.textContent = Math.max(1, Math.round(Number(participants.value) * combined)).toLocaleString();
+  const pmf = poissonBinomialPMF(ps);
+  const head = `<tr><th>Score</th><th>Probability %</th><th>Expected Users @ ${Number(participants.value).toLocaleString()}</th></tr>`;
+  const rowsHtml = pmf.map((prob, k) => {
+    const users = Math.round(Number(participants.value) * prob);
+    return `<tr><td>${k}/${ps.length}</td><td>${(prob*100).toFixed(6)}%</td><td>${users.toLocaleString()}</td></tr>`;
+  }).reverse().join('');
+  distTbl.innerHTML = head + rowsHtml;
+  const w=1000, h=300, pad=30;
+  chart.innerHTML = '';
+  const n = Math.min(ps.length, 30);
+  const bw = (w - pad*2)/Math.max(1,n);
+  const maxv = Math.max(0.01, Math.max(...ps)*100);
+  for(let i=0;i<n;i++){
+    const val = ps[i]*100;
+    const bh = (val/maxv)*(h - pad*2);
+    const x = pad + i*bw;
+    const y = h - pad - bh;
+    const rect = document.createElementNS('http://www.w3.org/2000/svg','rect');
+    rect.setAttribute('x', x); rect.setAttribute('y', y);
+    rect.setAttribute('width', bw*0.8); rect.setAttribute('height', bh);
+    rect.setAttribute('fill', '#60a5fa');
+    chart.appendChild(rect);
+  }
+}
+document.getElementById('addRow').addEventListener('click', ()=> addRow(templateInput.value || `Question ${rows.length+1}`, 2.50, 'Optimal pick'));
+document.getElementById('clearRows').addEventListener('click', ()=> { rows=[]; renderRows(); });
+document.getElementById('example').addEventListener('click', ()=> {
+  rows = [
+    {q:'Which team will win the match?', odds:2.20, a:'Team A'},
+    {q:'How many corners will be taken?', odds:4.80, a:'7-9 corners'},
+    {q:'How many shots on target for Player?', odds:3.10, a:'2 shots'},
+    {q:'In what minute will the first goal be scored?', odds:6.00, a:'31-45'},
+    {q:'Which listed player will receive a yellow card?', odds:3.60, a:'Player X'},
+    {q:'How many tackles will Player make?', odds:4.50, a:'2-3'},
+    {q:'How many passes will Player complete?', odds:5.00, a:'50-59'},
+    {q:'Which team will have more corners?', odds:1.90, a:'Team B'}
+  ];
+  qcount.value = rows.length;
+  renderRows();
+});
+document.getElementById('export').addEventListener('click', ()=>{
+  const m = Number(mult.value);
+  const out = {
+    title: 'F2P – Interactive Demo (optimal picks)',
+    participants: Number(participants.value),
+    questions: rows.map((r,i)=>({
+      id: 'q'+(i+1),
+      text: r.q,
+      answers: [{ id:'q'+(i+1)+'a1', label:r.a, decimal_odds: Number((Math.max(1.01, r.odds)*m).toFixed(4)), implied_p: 1.0/(Math.max(1.01, r.odds)*m) }]
+    }))
+  };
+  const blob = new Blob([JSON.stringify(out, null, 2)], {type:'application/json'});
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a'); a.href=url; a.download='f2p_interactive_export.json'; a.click(); URL.revokeObjectURL(url);
+  statusEl.textContent = 'Exported JSON downloaded.';
+});
+mult.addEventListener('input', render);
+participants.addEventListener('input', render);
+qcount.addEventListener('input', ()=> ensureCount(Math.max(1, Math.min(50, Number(qcount.value)||1))));
+ensureCount(Number(qcount.value));
+render();
+</script>
