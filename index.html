@@ -1,1 +1,35 @@
-<!doctype html><meta charset='utf-8'><title>F2P Demo</title><p>Upload the v2 HTML here.</p>
+<!doctype html><meta charset="utf-8">
+<title>F2P – Interactive Odds Demo (v2)</title>
+<style>
+  :root{--bg:#0b1220;--card:#0f172a;--muted:#8aa0b8;--text:#e4ecf7;--line:#20304b;--accent:#60a5fa;--ok:#22c55e}
+  *{box-sizing:border-box;font-family:system-ui,-apple-system,Segoe UI,Roboto,Arial}
+  body{margin:0;background:var(--bg);color:var(--text)}
+  .wrap{max-width:1140px;margin:22px auto;padding:0 16px}
+  .grid{display:grid;gap:12px}
+  .g3{grid-template-columns:repeat(3,1fr)}
+  .g2{grid-template-columns:repeat(2,1fr)}
+  .card{background:var(--card);border:1px solid var(--line);border-radius:16px;padding:16px}
+  .muted{color:var(--muted);font-size:12px}
+  .big{font-weight:700;font-size:18px}
+  input[type=number], input[type=text]{width:100%;background:#0b152a;color:var(--text);border:1px solid var(--line);border-radius:10px;padding:8px 10px}
+  input[type=range]{width:220px}
+  .qrow{display:grid;grid-template-columns:1fr 140px 220px 40px;gap:10px;align-items:center;margin:8px 0;padding:10px;border:1px solid var(--line);border-radius:12px;background:rgba(255,255,255,.02)}
+  .btn{padding:8px 12px;border:1px solid var(--line);border-radius:10px;background:#15233a;color:var(--text);cursor:pointer}
+  .btn:disabled{opacity:.6;cursor:not-allowed}
+  .chart{width:100%;height:300px;border:1px solid var(--line);border-radius:12px;background:#0b152a;display:block}
+  .table{width:100%;border-collapse:collapse}
+  .table th,.table td{border-bottom:1px solid #1b2a43;padding:8px 10px;text-align:right}
+  .table th:first-child,.table td:first-child{text-align:left}
+</style>
+
+<div class="wrap">
+  <h2 style="margin:0 0 6px 0">F2P – Interactive Odds Demo (single HTML)</h2>
+  <div class="muted">Enter question text and decimal odds for the <b>optimal pick</b> per question. Use the controls to project winners and the full score distribution.</div>
+
+  <div class="grid g2" style="margin-top:12px">
+    <div class="card">
+      <div class="muted">Participants</div>
+      <input id="participants" type="number" min="100" step="100" value="10000">
+      <div class="muted" style="margin-top:8px">Number of questions</div>
+      <input id="qcount" type="number" min="1" max="50" step="1" value="8">
+      <div class="muted" style="margin-top:8px">Questi
