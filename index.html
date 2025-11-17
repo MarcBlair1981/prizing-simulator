@@ -1,7 +1,7 @@
-<!-- /index.html : F2P – Interactive Odds Demo (v3.1, score-distribution chart) -->
+<!-- /index.html : F2P – Interactive Odds Demo (v3.2, batch set odds + typeable inputs) -->
 <!doctype html>
 <meta charset="utf-8" />
-<title>F2P – Interactive Odds Demo (v3.1)</title>
+<title>F2P – Interactive Odds Demo (v3.2)</title>
 <style>
   :root{--bg:#0b1220;--card:#0f172a;--muted:#8aa0b8;--text:#e4ecf7;--line:#20304b;--accent:#60a5fa;--ok:#22c55e}
   *{box-sizing:border-box;font-family:system-ui,-apple-system,Segoe UI,Roboto,Arial}
@@ -13,7 +13,7 @@
   .card{background:var(--card);border:1px solid var(--line);border-radius:16px;padding:16px}
   .muted{color:var(--muted);font-size:12px}
   .big{font-weight:700;font-size:18px}
-  input[type=number], input[type=text]{width:100%;background:#0b152a;color:var(--text);border:1px solid var(--line);border-radius:10px;padding:8px 10px}
+  input[type=text]{width:100%;background:#0b152a;color:var(--text);border:1px solid var(--line);border-radius:10px;padding:8px 10px}
   input[type=range]{width:220px}
   .qrow{display:grid;grid-template-columns:1fr 160px 220px 90px 40px;gap:10px;align-items:center;margin:8px 0;padding:10px;border:1px solid var(--line);border-radius:12px;background:rgba(255,255,255,.02)}
   .btn{padding:8px 12px;border:1px solid var(--line);border-radius:10px;background:#15233a;color:var(--text);cursor:pointer}
@@ -29,15 +29,15 @@
 </style>
 
 <div class="wrap">
-  <h2 style="margin:0 0 6px 0">F2P – Interactive Odds Demo (single HTML, v3.1)</h2>
-  <div class="muted">Type your questions and odds for the <b>optimal pick</b>. Supports decimal, fractional (<code>5/2</code>), and American (<code>+150</code>) odds; autosaves; shareable links; CSV export; and per-question implied probabilities.</div>
+  <h2 style="margin:0 0 6px 0">F2P – Interactive Odds Demo (single HTML, v3.2)</h2>
+  <div class="muted">Per-question odds accept decimal, fractional (<code>5/2</code>), or American (<code>+150</code>). New: set the same odds for all questions.</div>
 
   <div class="grid g2" style="margin-top:12px">
     <div class="card">
       <div class="muted">Participants</div>
-      <input id="participants" type="number" min="100" step="100" value="10000" aria-label="Participants">
+      <input id="participants" type="text" inputmode="numeric" pattern="[0-9]*" value="10000" aria-label="Participants">
       <div class="muted" style="margin-top:8px">Number of questions</div>
-      <input id="qcount" type="number" min="1" max="50" step="1" value="8" aria-label="Number of questions">
+      <input id="qcount" type="text" inputmode="numeric" pattern="[0-9]*" value="8" aria-label="Number of questions">
       <div class="muted" style="margin-top:8px">Question template</div>
       <input id="template" list="templates" type="text" placeholder="Type or choose (auto-fills when you add rows)" aria-label="Question template">
       <datalist id="templates">
@@ -54,7 +54,7 @@
     <div class="card">
       <div class="muted row">
         <span>Odds multiplier</span>
-        <span title="This multiplies each DECIMAL odd before converting to probability (p = 1/(odds × multiplier)). Lower = easier; Higher = harder.">(?)</span>
+        <span title="Multiplies each DECIMAL odd before converting to probability (p = 1/(odds × multiplier)). Lower = easier; Higher = harder.">(?)</span>
         <span class="pill" id="multDisp">×1.00</span>
       </div>
       <div class="row" style="margin-top:6px">
@@ -72,6 +72,14 @@
         <button id="exportCsv" class="btn">Export CSV</button>
         <button id="share" class="btn">Copy link</button>
       </div>
+
+      <!-- NEW: batch set odds -->
+      <div class="muted" style="margin-top:12px">Set the same odds for every question</div>
+      <div class="row" style="margin-top:6px">
+        <input id="allOdds" type="text" inputmode="decimal" placeholder="e.g. 2.50, 5/2, +150" aria-label="Set all question odds">
+        <button id="applyAllOdds" class="btn">Apply to all</button>
+      </div>
+
       <div id="status" class="muted" style="margin-top:6px;min-height:1lh"></div>
     </div>
   </div>
@@ -123,6 +131,8 @@ const distTbl = document.getElementById('dist');
 const statusEl = document.getElementById('status');
 const fileInput = document.getElementById('file');
 const tooltip = document.getElementById('tt');
+const allOdds = document.getElementById('allOdds');
+const applyAllOddsBtn = document.getElementById('applyAllOdds');
 
 /* ----------------------------- Utilities --------------------------------- */
 const clamp = (v, lo, hi) => Math.max(lo, Math.min(hi, v));
@@ -136,7 +146,7 @@ function parseOddsToDecimal(str){
       if (n >= 100) return 1 + (n/100);
       if (n <= -100) return 1 + (100/Math.abs(n));
     }
-    return n;
+    return n; // decimal
   }
   const frac = s.match(/^(\d+)\s*\/\s*(\d+)$/);
   if (frac) {
@@ -173,7 +183,7 @@ function renderRows(){
 
     wrap.innerHTML = `
       <input type="text" list="templates" value="${r.q.replaceAll('"','&quot;')}" aria-label="Question text">
-      <input type="text" value="${r.oddsRaw.replaceAll('"','&quot;')}" aria-label="Odds (decimal, fractional, or American)">
+      <input type="text" inputmode="decimal" value="${r.oddsRaw.replaceAll('"','&quot;')}" aria-label="Odds (decimal, fractional, or American)">
       <input type="text" value="${r.a.replaceAll('"','&quot;')}" aria-label="Optimal answer label">
       <div class="pill" title="Implied probability after multiplier">${(impliedP*100).toFixed(2)}%</div>
       <button class="btn" aria-label="Remove">✕</button>
@@ -242,11 +252,10 @@ function drawScoreChart(pmf, participantsCount){
   const n = pmf.length ? pmf.length - 1 : 0;
   const w=1000, h=320, padL=50, padR=20, padT=20, padB=40;
   chart.innerHTML = '';
-  const valsPct = pmf.map(v=>v*100);          // length n+1, k=0..n
+  const valsPct = pmf.map(v=>v*100);
   const maxv = Math.max(1, Math.max(...valsPct));
   const bw = (w - padL - padR) / Math.max(1, n+1);
 
-  // Axes
   const g = document.createElementNS('http://www.w3.org/2000/svg','g');
   const xAxis = document.createElementNS('http://www.w3.org/2000/svg','line');
   xAxis.setAttribute('x1', padL); xAxis.setAttribute('x2', w - padR);
@@ -258,7 +267,6 @@ function drawScoreChart(pmf, participantsCount){
   yAxis.setAttribute('stroke', '#20304b');
   g.appendChild(xAxis); g.appendChild(yAxis);
 
-  // Y ticks
   const ticks = 5;
   for (let t=0; t<=ticks; t++){
     const v = (t/ticks)*maxv;
@@ -277,9 +285,8 @@ function drawScoreChart(pmf, participantsCount){
   }
   chart.appendChild(g);
 
-  // Bars + sparse X labels + tooltip
   const tt = tooltip;
-  const step = Math.max(1, Math.ceil((n+1) / 12)); // ~12 labels max
+  const step = Math.max(1, Math.ceil((n+1) / 12));
   for(let k=0; k<=n; k++){
     const val = valsPct[k];
     const bh = (val/maxv)*(h - padT - padB);
@@ -317,7 +324,6 @@ function drawScoreChart(pmf, participantsCount){
     }
   }
 
-  // X axis title
   const xTitle = document.createElementNS('http://www.w3.org/2000/svg','text');
   xTitle.setAttribute('x', (w - padR + padL)/2);
   xTitle.setAttribute('y', h - 6);
@@ -326,7 +332,6 @@ function drawScoreChart(pmf, participantsCount){
   xTitle.textContent = 'Score';
   chart.appendChild(xTitle);
 
-  // Y axis title
   const yTitle = document.createElementNS('http://www.w3.org/2000/svg','text');
   yTitle.setAttribute('x', 14);
   yTitle.setAttribute('y', padT + 8);
@@ -335,7 +340,7 @@ function drawScoreChart(pmf, participantsCount){
   chart.appendChild(yTitle);
 }
 
-/* ----------------------------- Persistence & I/O -------------------------- */
+/* ----------------------------- Persistence & I/O (unchanged) ------------- */
 function getState(){ return { participants: Number(participants.value), mult: Number(mult.value), rows: rows.map(r=>({ q:r.q, oddsRaw:r.oddsRaw, oddsDec:r.oddsDec, a:r.a })) }; }
 function setState(state){
   if (!state) return;
@@ -414,6 +419,17 @@ function copyShareLink(){
   navigator.clipboard.writeText(url).then(()=> showStatus('Shareable link copied.'), ()=> showStatus('Copy failed.'));
 }
 
+/* ----------------------------- Batch Set Odds ----------------------------- */
+function applyAllOdds(){
+  const raw = allOdds.value.trim();
+  const dec = parseOddsToDecimal(raw);
+  if (!isFinite(dec) || dec < 1.01){ showStatus('Enter valid odds (e.g., 2.50, 5/2, +150).'); return; }
+  const clamped = clamp(dec, 1.01, 1e6);
+  rows = rows.map(r => ({ ...r, oddsRaw: raw, oddsDec: clamped }));
+  renderRows();
+  showStatus(`Applied ${raw} to all ${rows.length} questions.`);
+}
+
 /* ----------------------------- Events ------------------------------------ */
 document.getElementById('addRow').addEventListener('click', ()=> addRow(templateInput.value || `Question ${rows.length+1}`, 2.50, 'Optimal pick'));
 document.getElementById('clearRows').addEventListener('click', ()=> { rows=[]; renderRows(); showStatus('Cleared.'); });
@@ -441,9 +457,16 @@ fileInput.addEventListener('change', (e)=> {
 });
 document.getElementById('share').addEventListener('click', copyShareLink);
 
+applyAllOddsBtn.addEventListener('click', applyAllOdds);
+allOdds.addEventListener('keydown', (e)=>{ if (e.key === 'Enter') applyAllOdds(); });
+
 mult.addEventListener('input', render);
 participants.addEventListener('input', render);
-qcount.addEventListener('input', ()=> ensureCount(clamp(Number(qcount.value)||1, 1, 50)));
+qcount.addEventListener('input', ()=>{
+  const n = clamp(Number(qcount.value)||1, 1, 50);
+  qcount.value = String(n);
+  ensureCount(n);
+});
 
 /* ----------------------------- Bootstrap ---------------------------------- */
 (function bootstrap(){
