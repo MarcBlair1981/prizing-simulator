@@ -1,7 +1,7 @@
 <!doctype html><meta charset="utf-8">
-<title>F2P – Interactive Odds Demo (v2.1 minimal patch)</title>
+<title>F2P – Interactive Odds Demo (v2.2 minimal patch + CDF)</title>
 <style>
-  :root{--bg:#0b1220;--card:#0f172a;--muted:#8aa0b8;--text:#e4ecf7;--line:#20304b;--accent:#60a5fa;--ok:#22c55e}
+  :root{--bg:#0b1220;--card:#0f172a;--muted:#9fb3cb;--text:#e4ecf7;--line:#2a3a59;--accent:#60a5fa;--ok:#22c55e}
   *{box-sizing:border-box;font-family:system-ui,-apple-system,Segoe UI,Roboto,Arial}
   body{margin:0;background:var(--bg);color:var(--text)}
   .wrap{max-width:1140px;margin:22px auto;padding:0 16px}
@@ -16,13 +16,14 @@
   .qrow{display:grid;grid-template-columns:1fr 140px 220px 40px;gap:10px;align-items:center;margin:8px 0;padding:10px;border:1px solid var(--line);border-radius:12px;background:rgba(255,255,255,.02)}
   .btn{padding:8px 12px;border:1px solid var(--line);border-radius:10px;background:#15233a;color:var(--text);cursor:pointer}
   .btn:disabled{opacity:.6;cursor:not-allowed}
-  .chart{width:100%;height:300px;border:1px solid var(--line);border-radius:12px;background:#0b152a;display:block}
+  .chart{width:100%;height:320px;border:1px solid var(--line);border-radius:12px;background:#0b152a;display:block}
   .table{width:100%;border-collapse:collapse}
   .table th,.table td{border-bottom:1px solid #1b2a43;padding:8px 10px;text-align:right}
   .table th:first-child,.table td:first-child{text-align:left}
   .row{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
   .pill{display:inline-block;padding:2px 8px;border:1px solid var(--line);border-radius:999px;font-size:12px}
   .tooltip{position:absolute;pointer-events:none;background:#111827;color:#e5e7eb;border:1px solid #374151;border-radius:8px;padding:6px 8px;font-size:12px;transform:translate(-50%,-120%);white-space:nowrap}
+  .chart-title{font-weight:700;color:#e8f0fb}
 </style>
 
 <div class="wrap">
@@ -64,7 +65,7 @@
         <button id="export" class="btn">Export JSON</button>
       </div>
 
-      <!-- NEW: minimal-impact bulk controls -->
+      <!-- Bulk controls (kept) -->
       <div class="muted" style="margin-top:10px">Bulk odds</div>
       <div class="row" style="margin-top:6px">
         <input id="uniformOdds" type="text" inputmode="decimal" placeholder="Uniform odds e.g. 2.50" style="max-width:160px">
@@ -93,10 +94,10 @@
   </div>
 
   <div class="card" style="margin-top:12px;position:relative">
-    <div class="muted" style="margin-bottom:6px">
-      <b>Score distribution</b> — X-axis: score (0..N). Y-axis: % of users at that score.
+    <div class="muted chart-title" style="margin-bottom:6px">
+      <b>Score distribution</b> — X: score (0..N), Y: % of users. Line = CDF (≤ score).
     </div>
-    <svg id="chart" class="chart" viewBox="0 0 1000 300" preserveAspectRatio="none"></svg>
+    <svg id="chart" class="chart" viewBox="0 0 1000 320" preserveAspectRatio="none"></svg>
     <div id="tt" class="tooltip" style="display:none"></div>
   </div>
 </div>
@@ -144,7 +145,6 @@ function renderRows(){
     wrap.className = 'qrow';
     wrap.innerHTML = `
       <input type="text" list="templates" value="${r.q.replaceAll('"','&quot;')}" aria-label="Question text">
-      <!-- CHANGED: odds are typeable text (no steppers) -->
       <input type="text" inputmode="decimal" value="${r.odds.toFixed(2)}" aria-label="Decimal odds">
       <input type="text" value="${r.a.replaceAll('"','&quot;')}" aria-label="Optimal answer label">
       <button class="btn" aria-label="Remove">✕</button>
@@ -202,49 +202,50 @@ function render(){
   }).reverse().join('');
   distTbl.innerHTML = head + rowsHtml;
 
-  drawScoreChart(pmf, Number(participants.value));
+  drawScoreChartWithCDF(pmf, Number(participants.value));
 }
 
-// NEW: score distribution chart (X=score 0..N, Y=% users)
-function drawScoreChart(pmf, participantsCount){
-  const w=1000, h=300, padL=50, padR=20, padT=20, padB=36;
+// Score distribution + CDF overlay
+function drawScoreChartWithCDF(pmf, participantsCount){
+  const w=1000, h=320, padL=66, padR=24, padT=28, padB=44; // extra left padding for rotated Y title
   chart.innerHTML = '';
   const n = pmf.length ? pmf.length-1 : 0;
   const vals = pmf.map(p=>p*100);
-  const maxv = Math.max(1, ...vals);
+  const cdf = vals.map((_,i)=> vals.slice(0,i+1).reduce((a,b)=>a+b,0));
+  const maxv = Math.max(100, ...vals); // keep headroom and consistent scale
   const bw = (w - padL - padR) / Math.max(1, n+1);
 
-  // Axes
+  // Axes & grid (higher contrast)
   const g = document.createElementNS('http://www.w3.org/2000/svg','g');
   const xAxis = document.createElementNS('http://www.w3.org/2000/svg','line');
   xAxis.setAttribute('x1', padL); xAxis.setAttribute('x2', w - padR);
   xAxis.setAttribute('y1', h - padB); xAxis.setAttribute('y2', h - padB);
-  xAxis.setAttribute('stroke', '#20304b');
+  xAxis.setAttribute('stroke', '#3b506f'); xAxis.setAttribute('stroke-width','1.25');
   const yAxis = document.createElementNS('http://www.w3.org/2000/svg','line');
   yAxis.setAttribute('x1', padL); yAxis.setAttribute('x2', padL);
   yAxis.setAttribute('y1', padT); yAxis.setAttribute('y2', h - padB);
-  yAxis.setAttribute('stroke', '#20304b');
+  yAxis.setAttribute('stroke', '#3b506f'); yAxis.setAttribute('stroke-width','1.25');
   g.appendChild(xAxis); g.appendChild(yAxis);
 
-  // Y ticks
-  const ticks = 5;
+  const ticks = 6;
   for(let t=0;t<=ticks;t++){
     const v = (t/ticks)*maxv;
     const y = h - padB - (v/maxv)*(h - padT - padB);
     const line = document.createElementNS('http://www.w3.org/2000/svg','line');
     line.setAttribute('x1', padL); line.setAttribute('x2', w - padR);
     line.setAttribute('y1', y); line.setAttribute('y2', y);
-    line.setAttribute('stroke', '#182338');
+    line.setAttribute('stroke', '#2b3c5d'); line.setAttribute('stroke-width','1');
+    line.setAttribute('opacity','0.9');
     g.appendChild(line);
     const lbl = document.createElementNS('http://www.w3.org/2000/svg','text');
-    lbl.setAttribute('x', padL - 8); lbl.setAttribute('y', y+4);
-    lbl.setAttribute('text-anchor','end'); lbl.setAttribute('font-size','11'); lbl.setAttribute('fill','#8aa0b8');
+    lbl.setAttribute('x', padL - 10); lbl.setAttribute('y', y+4);
+    lbl.setAttribute('text-anchor','end'); lbl.setAttribute('font-size','12'); lbl.setAttribute('fill','#c9d6ea');
     lbl.textContent = v.toFixed(0) + '%';
     g.appendChild(lbl);
   }
   chart.appendChild(g);
 
-  // Bars + labels + tooltip
+  // Bars (PMF)
   const step = Math.max(1, Math.ceil((n+1) / 12));
   for(let k=0;k<=n;k++){
     const val = vals[k];
@@ -253,12 +254,12 @@ function drawScoreChart(pmf, participantsCount){
     const y = h - padB - bh;
     const rect = document.createElementNS('http://www.w3.org/2000/svg','rect');
     rect.setAttribute('x', x + bw*0.1); rect.setAttribute('y', y);
-    rect.setAttribute('width', bw*0.8); rect.setAttribute('height', bh);
+    rect.setAttribute('width', bw*0.8); rect.setAttribute('height', Math.max(0,bh));
     rect.setAttribute('fill', '#60a5fa'); rect.setAttribute('rx','2');
     rect.addEventListener('mouseenter', ()=>{
       tt.style.display = 'block';
       const users = Math.round(participantsCount * (pmf[k]));
-      tt.textContent = `Score ${k}/${n} • ${val.toFixed(4)}% • ~${users.toLocaleString()} users`;
+      tt.textContent = `Score ${k}/${n} • PMF ${val.toFixed(4)}% • CDF ${cdf[k].toFixed(4)}% • ~${users.toLocaleString()} users`;
     });
     rect.addEventListener('mousemove', (e)=>{
       const r = chart.getBoundingClientRect();
@@ -270,20 +271,79 @@ function drawScoreChart(pmf, participantsCount){
 
     if (k % step === 0 || k === n){
       const lbl = document.createElementNS('http://www.w3.org/2000/svg','text');
-      lbl.setAttribute('x', x + bw*0.5); lbl.setAttribute('y', h - padB + 14);
-      lbl.setAttribute('text-anchor','middle'); lbl.setAttribute('font-size','11'); lbl.setAttribute('fill','#8aa0b8');
+      lbl.setAttribute('x', x + bw*0.5); lbl.setAttribute('y', h - padB + 16);
+      lbl.setAttribute('text-anchor','middle'); lbl.setAttribute('font-size','12'); lbl.setAttribute('fill','#c9d6ea');
       lbl.textContent = k;
       chart.appendChild(lbl);
     }
   }
+
+  // CDF polyline
+  const pts = cdf.map((cv,k)=>{
+    const x = padL + k*bw + bw*0.5; // center on bar
+    const y = h - padB - (cv/maxv)*(h - padT - padB);
+    return `${x},${y}`;
+  }).join(' ');
+  const poly = document.createElementNS('http://www.w3.org/2000/svg','polyline');
+  poly.setAttribute('points', pts);
+  poly.setAttribute('fill', 'none');
+  poly.setAttribute('stroke', '#e5e7eb');
+  poly.setAttribute('stroke-width', '2');
+  chart.appendChild(poly);
+
+  // CDF markers
+  for(let k=0;k<=n;k++){
+    const cv = cdf[k];
+    const cx = padL + k*bw + bw*0.5;
+    const cy = h - padB - (cv/maxv)*(h - padT - padB);
+    const c = document.createElementNS('http://www.w3.org/2000/svg','circle');
+    c.setAttribute('cx', cx); c.setAttribute('cy', cy); c.setAttribute('r', 2.5);
+    c.setAttribute('fill', '#e5e7eb');
+    chart.appendChild(c);
+  }
+
+  // X axis title
   const xTitle = document.createElementNS('http://www.w3.org/2000/svg','text');
-  xTitle.setAttribute('x',(w - padR + padL)/2); xTitle.setAttribute('y', h - 6);
-  xTitle.setAttribute('text-anchor','middle'); xTitle.setAttribute('font-size','12'); xTitle.setAttribute('fill','#8aa0b8');
-  xTitle.textContent = 'Score'; chart.appendChild(xTitle);
+  xTitle.setAttribute('x',(w - padR + padL)/2); xTitle.setAttribute('y', h - 8);
+  xTitle.setAttribute('text-anchor','middle'); xTitle.setAttribute('font-size','12'); xTitle.setAttribute('fill','#cfe3ff');
+  xTitle.textContent = 'Score';
+  chart.appendChild(xTitle);
+
+  // Rotated Y axis title (avoid clash with ticks)
   const yTitle = document.createElementNS('http://www.w3.org/2000/svg','text');
-  yTitle.setAttribute('x', 14); yTitle.setAttribute('y', padT + 8);
-  yTitle.setAttribute('font-size','12'); yTitle.setAttribute('fill','#8aa0b8');
-  yTitle.textContent = '% of users'; chart.appendChild(yTitle);
+  yTitle.setAttribute('x', 16); yTitle.setAttribute('y', (h - padB + padT)/2);
+  yTitle.setAttribute('transform', `rotate(-90, 16, ${(h - padB + padT)/2})`);
+  yTitle.setAttribute('font-size','12'); yTitle.setAttribute('fill','#cfe3ff');
+  yTitle.textContent = '% of users';
+  chart.appendChild(yTitle);
+
+  // Chart title inside SVG (more visible)
+  const title = document.createElementNS('http://www.w3.org/2000/svg','text');
+  title.setAttribute('x', padL); title.setAttribute('y', padT - 8);
+  title.setAttribute('font-size','13'); title.setAttribute('fill','#ffffff'); title.setAttribute('font-weight','700');
+  title.textContent = 'Score Distribution (bars) with CDF (line)';
+  chart.appendChild(title);
+
+  // Legend
+  const lgY = padT - 12;
+  const lgX = w - padR - 210;
+  const barSwatch = document.createElementNS('http://www.w3.org/2000/svg','rect');
+  barSwatch.setAttribute('x', lgX); barSwatch.setAttribute('y', lgY);
+  barSwatch.setAttribute('width', 14); barSwatch.setAttribute('height', 10); barSwatch.setAttribute('fill','#60a5fa');
+  const barLbl = document.createElementNS('http://www.w3.org/2000/svg','text');
+  barLbl.setAttribute('x', lgX + 18); barLbl.setAttribute('y', lgY + 10);
+  barLbl.setAttribute('font-size','12'); barLbl.setAttribute('fill','#cfe3ff'); barLbl.textContent = 'PMF (% at score)';
+
+  const lineSwatch = document.createElementNS('http://www.w3.org/2000/svg','line');
+  lineSwatch.setAttribute('x1', lgX + 120); lineSwatch.setAttribute('x2', lgX + 150);
+  lineSwatch.setAttribute('y1', lgY + 5); lineSwatch.setAttribute('y2', lgY + 5);
+  lineSwatch.setAttribute('stroke','#e5e7eb'); lineSwatch.setAttribute('stroke-width','2');
+  const lineLbl = document.createElementNS('http://www.w3.org/2000/svg','text');
+  lineLbl.setAttribute('x', lgX + 156); lineLbl.setAttribute('y', lgY + 10);
+  lineLbl.setAttribute('font-size','12'); lineLbl.setAttribute('fill','#cfe3ff'); lineLbl.textContent = 'CDF (≤ score)';
+
+  chart.appendChild(barSwatch); chart.appendChild(barLbl);
+  chart.appendChild(lineSwatch); chart.appendChild(lineLbl);
 }
 
 // Bulk: set all odds to one number (decimal)
@@ -345,8 +405,4 @@ qcount.addEventListener('input', ()=> ensureCount(Math.max(1, Math.min(50, Numbe
 
 ensureCount(Number(qcount.value));
 render();
-</script>
-
-  render();
-})();
 </script>
