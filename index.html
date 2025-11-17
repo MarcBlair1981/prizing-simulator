@@ -1,5 +1,7 @@
-<!doctype html><meta charset="utf-8">
-<title>F2P – Interactive Odds Demo (v2)</title>
+<!-- /index.html : F2P – Interactive Odds Demo (v3.1, score-distribution chart) -->
+<!doctype html>
+<meta charset="utf-8" />
+<title>F2P – Interactive Odds Demo (v3.1)</title>
 <style>
   :root{--bg:#0b1220;--card:#0f172a;--muted:#8aa0b8;--text:#e4ecf7;--line:#20304b;--accent:#60a5fa;--ok:#22c55e}
   *{box-sizing:border-box;font-family:system-ui,-apple-system,Segoe UI,Roboto,Arial}
@@ -13,27 +15,31 @@
   .big{font-weight:700;font-size:18px}
   input[type=number], input[type=text]{width:100%;background:#0b152a;color:var(--text);border:1px solid var(--line);border-radius:10px;padding:8px 10px}
   input[type=range]{width:220px}
-  .qrow{display:grid;grid-template-columns:1fr 140px 220px 40px;gap:10px;align-items:center;margin:8px 0;padding:10px;border:1px solid var(--line);border-radius:12px;background:rgba(255,255,255,.02)}
+  .qrow{display:grid;grid-template-columns:1fr 160px 220px 90px 40px;gap:10px;align-items:center;margin:8px 0;padding:10px;border:1px solid var(--line);border-radius:12px;background:rgba(255,255,255,.02)}
   .btn{padding:8px 12px;border:1px solid var(--line);border-radius:10px;background:#15233a;color:var(--text);cursor:pointer}
   .btn:disabled{opacity:.6;cursor:not-allowed}
-  .chart{width:100%;height:300px;border:1px solid var(--line);border-radius:12px;background:#0b152a;display:block}
+  .chart{width:100%;height:320px;border:1px solid var(--line);border-radius:12px;background:#0b152a;display:block}
   .table{width:100%;border-collapse:collapse}
   .table th,.table td{border-bottom:1px solid #1b2a43;padding:8px 10px;text-align:right}
   .table th:first-child,.table td:first-child{text-align:left}
+  .pill{display:inline-block;padding:2px 8px;border:1px solid var(--line);border-radius:999px;font-size:12px}
+  .row{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
+  .tooltip{position:absolute;pointer-events:none;background:#111827;color:#e5e7eb;border:1px solid #374151;border-radius:8px;padding:6px 8px;font-size:12px;transform:translate(-50%,-120%);white-space:nowrap}
+  @media (max-width:860px){ .g2{grid-template-columns:1fr} .g3{grid-template-columns:1fr} .qrow{grid-template-columns:1fr 140px 1fr 80px 36px} input[type=range]{width:160px} }
 </style>
 
 <div class="wrap">
-  <h2 style="margin:0 0 6px 0">F2P – Interactive Odds Demo (single HTML)</h2>
-  <div class="muted">Enter question text and decimal odds for the <b>optimal pick</b> per question. Use the controls to project winners and the full score distribution.</div>
+  <h2 style="margin:0 0 6px 0">F2P – Interactive Odds Demo (single HTML, v3.1)</h2>
+  <div class="muted">Type your questions and odds for the <b>optimal pick</b>. Supports decimal, fractional (<code>5/2</code>), and American (<code>+150</code>) odds; autosaves; shareable links; CSV export; and per-question implied probabilities.</div>
 
   <div class="grid g2" style="margin-top:12px">
     <div class="card">
       <div class="muted">Participants</div>
-      <input id="participants" type="number" min="100" step="100" value="10000">
+      <input id="participants" type="number" min="100" step="100" value="10000" aria-label="Participants">
       <div class="muted" style="margin-top:8px">Number of questions</div>
-      <input id="qcount" type="number" min="1" max="50" step="1" value="8">
+      <input id="qcount" type="number" min="1" max="50" step="1" value="8" aria-label="Number of questions">
       <div class="muted" style="margin-top:8px">Question template</div>
-      <input id="template" list="templates" type="text" placeholder="Type or choose (auto-fills when you add rows)">
+      <input id="template" list="templates" type="text" placeholder="Type or choose (auto-fills when you add rows)" aria-label="Question template">
       <datalist id="templates">
         <option>Which team will win the match?</option>
         <option>How many corners will be taken?</option>
@@ -46,29 +52,33 @@
     </div>
 
     <div class="card">
-      <div class="muted" style="display:flex;align-items:center;gap:8px">
+      <div class="muted row">
         <span>Odds multiplier</span>
-        <span title="Explainer: This multiplies each DECIMAL odd before converting to probability (p = 1/(odds × multiplier)).
-Lowering the multiplier increases probabilities (easier), raising it decreases probabilities (harder).
-Use it as a global difficulty lever or to model margin/price drift.">(?)</span>
+        <span title="This multiplies each DECIMAL odd before converting to probability (p = 1/(odds × multiplier)). Lower = easier; Higher = harder.">(?)</span>
+        <span class="pill" id="multDisp">×1.00</span>
       </div>
-      <div class="row" style="display:flex;gap:10px;align-items:center;margin-top:6px">
-        <input id="mult" type="range" min="0.50" max="2.00" step="0.01" value="1.00"><span id="multDisp" class="muted">×1.00</span>
+      <div class="row" style="margin-top:6px">
+        <input id="mult" type="range" min="0.50" max="2.00" step="0.01" value="1.00" aria-label="Odds multiplier slider">
       </div>
 
       <div class="muted" style="margin-top:10px">Quick actions</div>
-      <div style="display:flex;gap:8px;margin-top:6px">
+      <div class="row" style="margin-top:6px">
         <button id="addRow" class="btn">Add question</button>
         <button id="clearRows" class="btn">Clear all</button>
         <button id="example" class="btn">Load example</button>
+        <button id="import" class="btn">Import JSON</button>
+        <input id="file" type="file" accept=".json,application/json" style="display:none" />
         <button id="export" class="btn">Export JSON</button>
+        <button id="exportCsv" class="btn">Export CSV</button>
+        <button id="share" class="btn">Copy link</button>
       </div>
-      <div id="status" class="muted" style="margin-top:6px"></div>
+      <div id="status" class="muted" style="margin-top:6px;min-height:1lh"></div>
     </div>
   </div>
 
   <div class="card" style="margin-top:12px">
-    <div class="muted">Questions (type to edit; odds = decimal for optimal pick)</div>
+    <div class="muted">Questions (type to edit; odds can be decimal, fractional, or American)</div>
+    <div class="muted" style="margin:6px 0">Implied probability is computed after applying the global multiplier.</div>
     <div id="qlist"></div>
   </div>
 
@@ -83,17 +93,21 @@ Use it as a global difficulty lever or to model margin/price drift.">(?)</span>
     <table class="table" id="dist"></table>
   </div>
 
-  <div class="card" style="margin-top:12px">
+  <div class="card" style="margin-top:12px;position:relative">
     <div class="muted" style="margin-bottom:6px">
-      Bar chart below shows the <b>implied probability (%) per question</b> for the optimal pick (after applying the odds multiplier).
-      X-axis = questions (first 30), Y-axis = implied probability. Higher bars mean that question is likelier to be answered correctly by an optimal picker.
+      <b>Score distribution</b> — X-axis: score (0 to N). Y-axis: % of users at that score.
     </div>
-    <svg id="chart" class="chart" viewBox="0 0 1000 300" preserveAspectRatio="none"></svg>
+    <svg id="chart" class="chart" viewBox="0 0 1000 320" preserveAspectRatio="none" aria-label="Score distribution bar chart"></svg>
+    <div id="tt" class="tooltip" style="display:none"></div>
   </div>
 </div>
 
 <script>
+/* ----------------------------- State & Models ----------------------------- */
 let rows = [];
+let lastPMF = [];
+const LS_KEY = 'f2p_v3_state';
+
 const templateInput = document.getElementById('template');
 const participants = document.getElementById('participants');
 const qcount = document.getElementById('qcount');
@@ -107,43 +121,80 @@ const winners = document.getElementById('winners');
 const chart = document.getElementById('chart');
 const distTbl = document.getElementById('dist');
 const statusEl = document.getElementById('status');
+const fileInput = document.getElementById('file');
+const tooltip = document.getElementById('tt');
 
+/* ----------------------------- Utilities --------------------------------- */
+const clamp = (v, lo, hi) => Math.max(lo, Math.min(hi, v));
+function showStatus(msg, ms=1800){ statusEl.textContent = msg; if(ms){ setTimeout(()=>{ statusEl.textContent=''; }, ms); }}
+function parseOddsToDecimal(str){
+  const s = String(str || '').trim();
+  if(!s) return NaN;
+  if (/^[+-]?\d+(\.\d+)?$/.test(s)) {
+    const n = Number(s);
+    if (s.startsWith('+') || s.startsWith('-')) { // American
+      if (n >= 100) return 1 + (n/100);
+      if (n <= -100) return 1 + (100/Math.abs(n));
+    }
+    return n;
+  }
+  const frac = s.match(/^(\d+)\s*\/\s*(\d+)$/);
+  if (frac) {
+    const a = Number(frac[1]), b = Number(frac[2]);
+    if (b > 0) return 1 + (a / b);
+  }
+  return NaN;
+}
+
+/* ----------------------------- Rows Ops ---------------------------------- */
 function addRow(q='', odds=2.50, a='Optimal pick'){
-  rows.push({q, odds: Number(odds) || 2.50, a});
+  const dec = Number(odds);
+  rows.push({ q, oddsRaw: String(odds), oddsDec: isFinite(dec)? dec : 2.50, a });
   renderRows();
 }
-function removeRow(idx){
-  rows.splice(idx,1);
-  render();
-}
+function removeRow(idx){ rows.splice(idx,1); render(); }
 function ensureCount(n){
-  while(rows.length < n){
+  while (rows.length < n) {
     const tmpl = templateInput.value.trim();
     addRow(tmpl || `Question ${rows.length+1}`, 2.50, 'Optimal pick');
   }
-  while(rows.length > n){ rows.pop(); }
+  while (rows.length > n) rows.pop();
   renderRows();
 }
+
+/* ----------------------------- Rendering --------------------------------- */
 function renderRows(){
   qlist.innerHTML = '';
+  const m = Number(mult.value);
   rows.forEach((r, i) => {
     const wrap = document.createElement('div');
     wrap.className = 'qrow';
+    const impliedP = 1.0 / (Math.max(1.01, r.oddsDec) * m);
+
     wrap.innerHTML = `
       <input type="text" list="templates" value="${r.q.replaceAll('"','&quot;')}" aria-label="Question text">
-      <input type="number" step="0.01" min="1.01" value="${r.odds.toFixed(2)}" aria-label="Decimal odds">
+      <input type="text" value="${r.oddsRaw.replaceAll('"','&quot;')}" aria-label="Odds (decimal, fractional, or American)">
       <input type="text" value="${r.a.replaceAll('"','&quot;')}" aria-label="Optimal answer label">
+      <div class="pill" title="Implied probability after multiplier">${(impliedP*100).toFixed(2)}%</div>
       <button class="btn" aria-label="Remove">✕</button>
     `;
-    const [qi, oi, ai, rm] = wrap.querySelectorAll('input,button');
+    const [qi, oi, ai, , rm] = wrap.querySelectorAll('input,button,div');
+
     qi.addEventListener('input', ()=>{ r.q = qi.value; render(); });
-    oi.addEventListener('input', ()=>{ r.odds = Math.max(1.01, Number(oi.value||1.01)); oi.value = r.odds.toFixed(2); render(); });
+    oi.addEventListener('input', ()=>{
+      r.oddsRaw = oi.value;
+      const d = parseOddsToDecimal(oi.value);
+      if (isFinite(d)) { r.oddsDec = clamp(d, 1.01, 1e6); render(); }
+    });
+    oi.addEventListener('blur', ()=>{ if (!r.oddsRaw.trim()) { r.oddsRaw = r.oddsDec.toFixed(2); oi.value = r.oddsRaw; }});
     ai.addEventListener('input', ()=>{ r.a = ai.value; render(); });
     rm.addEventListener('click', ()=> removeRow(i));
+    ai.addEventListener('keydown', (e)=>{ if (e.key === 'Enter' && i === rows.length - 1) { addRow(templateInput.value || `Question ${rows.length+1}`, 2.50, 'Optimal pick'); }});
     qlist.appendChild(wrap);
   });
   render();
 }
+
 function poissonBinomialPMF(ps){
   const n = ps.length;
   const dp = new Float64Array(n+1);
@@ -158,75 +209,254 @@ function poissonBinomialPMF(ps){
   }
   return Array.from(dp);
 }
+
 function render(){
   multDisp.textContent = '×' + Number(mult.value).toFixed(2);
   pdisp.textContent = Number(participants.value).toLocaleString();
   qstat.textContent = rows.length.toString();
+
   const m = Number(mult.value);
-  const ps = rows.map(r => 1.0 / (Math.max(1.01, r.odds) * m));
+  const ps = rows.map(r => 1.0 / (Math.max(1.01, r.oddsDec) * m));
+
   let combined = 1.0;
   for (const p of ps) combined *= p;
   comb.textContent = (combined*100).toFixed(6) + '%';
-  winners.textContent = Math.max(1, Math.round(Number(participants.value) * combined)).toLocaleString();
-  const pmf = poissonBinomialPMF(ps);
+  const expWinners = Math.max(1, Math.round(Number(participants.value) * combined));
+  winners.textContent = expWinners.toLocaleString();
+
+  lastPMF = poissonBinomialPMF(ps);
+
   const head = `<tr><th>Score</th><th>Probability %</th><th>Expected Users @ ${Number(participants.value).toLocaleString()}</th></tr>`;
-  const rowsHtml = pmf.map((prob, k) => {
+  const rowsHtml = lastPMF.map((prob, k) => {
     const users = Math.round(Number(participants.value) * prob);
     return `<tr><td>${k}/${ps.length}</td><td>${(prob*100).toFixed(6)}%</td><td>${users.toLocaleString()}</td></tr>`;
   }).reverse().join('');
   distTbl.innerHTML = head + rowsHtml;
-  const w=1000, h=300, pad=30;
-  chart.innerHTML = '';
-  const n = Math.min(ps.length, 30);
-  const bw = (w - pad*2)/Math.max(1,n);
-  const maxv = Math.max(0.01, Math.max(...ps)*100);
-  for(let i=0;i<n;i++){
-    const val = ps[i]*100;
-    const bh = (val/maxv)*(h - pad*2);
-    const x = pad + i*bw;
-    const y = h - pad - bh;
-    const rect = document.createElementNS('http://www.w3.org/2000/svg','rect');
-    rect.setAttribute('x', x); rect.setAttribute('y', y);
-    rect.setAttribute('width', bw*0.8); rect.setAttribute('height', bh);
-    rect.setAttribute('fill', '#60a5fa');
-    chart.appendChild(rect);
-  }
+
+  drawScoreChart(lastPMF, Number(participants.value));
+  saveStateDebounced();
 }
-document.getElementById('addRow').addEventListener('click', ()=> addRow(templateInput.value || `Question ${rows.length+1}`, 2.50, 'Optimal pick'));
-document.getElementById('clearRows').addEventListener('click', ()=> { rows=[]; renderRows(); });
-document.getElementById('example').addEventListener('click', ()=> {
-  rows = [
-    {q:'Which team will win the match?', odds:2.20, a:'Team A'},
-    {q:'How many corners will be taken?', odds:4.80, a:'7-9 corners'},
-    {q:'How many shots on target for Player?', odds:3.10, a:'2 shots'},
-    {q:'In what minute will the first goal be scored?', odds:6.00, a:'31-45'},
-    {q:'Which listed player will receive a yellow card?', odds:3.60, a:'Player X'},
-    {q:'How many tackles will Player make?', odds:4.50, a:'2-3'},
-    {q:'How many passes will Player complete?', odds:5.00, a:'50-59'},
-    {q:'Which team will have more corners?', odds:1.90, a:'Team B'}
-  ];
-  qcount.value = rows.length;
+
+/* ----------------------------- Score Chart -------------------------------- */
+function drawScoreChart(pmf, participantsCount){
+  const n = pmf.length ? pmf.length - 1 : 0;
+  const w=1000, h=320, padL=50, padR=20, padT=20, padB=40;
+  chart.innerHTML = '';
+  const valsPct = pmf.map(v=>v*100);          // length n+1, k=0..n
+  const maxv = Math.max(1, Math.max(...valsPct));
+  const bw = (w - padL - padR) / Math.max(1, n+1);
+
+  // Axes
+  const g = document.createElementNS('http://www.w3.org/2000/svg','g');
+  const xAxis = document.createElementNS('http://www.w3.org/2000/svg','line');
+  xAxis.setAttribute('x1', padL); xAxis.setAttribute('x2', w - padR);
+  xAxis.setAttribute('y1', h - padB); xAxis.setAttribute('y2', h - padB);
+  xAxis.setAttribute('stroke', '#20304b');
+  const yAxis = document.createElementNS('http://www.w3.org/2000/svg','line');
+  yAxis.setAttribute('x1', padL); yAxis.setAttribute('x2', padL);
+  yAxis.setAttribute('y1', padT); yAxis.setAttribute('y2', h - padB);
+  yAxis.setAttribute('stroke', '#20304b');
+  g.appendChild(xAxis); g.appendChild(yAxis);
+
+  // Y ticks
+  const ticks = 5;
+  for (let t=0; t<=ticks; t++){
+    const v = (t/ticks)*maxv;
+    const y = h - padB - (v/maxv)*(h - padT - padB);
+    const line = document.createElementNS('http://www.w3.org/2000/svg','line');
+    line.setAttribute('x1', padL); line.setAttribute('x2', w - padR);
+    line.setAttribute('y1', y); line.setAttribute('y2', y);
+    line.setAttribute('stroke', '#182338');
+    g.appendChild(line);
+    const lbl = document.createElementNS('http://www.w3.org/2000/svg','text');
+    lbl.setAttribute('x', padL - 8); lbl.setAttribute('y', y+4);
+    lbl.setAttribute('text-anchor', 'end'); lbl.setAttribute('font-size','11');
+    lbl.setAttribute('fill', '#8aa0b8');
+    lbl.textContent = v.toFixed(0) + '%';
+    g.appendChild(lbl);
+  }
+  chart.appendChild(g);
+
+  // Bars + sparse X labels + tooltip
+  const tt = tooltip;
+  const step = Math.max(1, Math.ceil((n+1) / 12)); // ~12 labels max
+  for(let k=0; k<=n; k++){
+    const val = valsPct[k];
+    const bh = (val/maxv)*(h - padT - padB);
+    const x = padL + k*bw;
+    const y = h - padB - bh;
+
+    const rect = document.createElementNS('http://www.w3.org/2000/svg','rect');
+    rect.setAttribute('x', x + bw*0.1);
+    rect.setAttribute('y', y);
+    rect.setAttribute('width', bw*0.8);
+    rect.setAttribute('height', bh);
+    rect.setAttribute('fill', '#60a5fa');
+    rect.setAttribute('rx', '2');
+    rect.addEventListener('mouseenter', ()=>{
+      tt.style.display = 'block';
+      const users = Math.round(participantsCount * (pmf[k]));
+      tt.textContent = `Score ${k}/${n} • ${val.toFixed(4)}% • ~${users.toLocaleString()} users`;
+    });
+    rect.addEventListener('mousemove', (e)=>{
+      const r = chart.getBoundingClientRect();
+      tt.style.left = (e.clientX - r.left) + 'px';
+      tt.style.top  = (e.clientY - r.top) + 'px';
+    });
+    rect.addEventListener('mouseleave', ()=>{ tt.style.display = 'none'; });
+    chart.appendChild(rect);
+
+    if (k % step === 0 || k === n){
+      const lbl = document.createElementNS('http://www.w3.org/2000/svg','text');
+      lbl.setAttribute('x', x + bw*0.5);
+      lbl.setAttribute('y', h - padB + 14);
+      lbl.setAttribute('text-anchor', 'middle');
+      lbl.setAttribute('font-size','11'); lbl.setAttribute('fill','#8aa0b8');
+      lbl.textContent = k;
+      chart.appendChild(lbl);
+    }
+  }
+
+  // X axis title
+  const xTitle = document.createElementNS('http://www.w3.org/2000/svg','text');
+  xTitle.setAttribute('x', (w - padR + padL)/2);
+  xTitle.setAttribute('y', h - 6);
+  xTitle.setAttribute('text-anchor','middle');
+  xTitle.setAttribute('font-size','12'); xTitle.setAttribute('fill', '#8aa0b8');
+  xTitle.textContent = 'Score';
+  chart.appendChild(xTitle);
+
+  // Y axis title
+  const yTitle = document.createElementNS('http://www.w3.org/2000/svg','text');
+  yTitle.setAttribute('x', 14);
+  yTitle.setAttribute('y', padT + 8);
+  yTitle.setAttribute('font-size','12'); yTitle.setAttribute('fill', '#8aa0b8');
+  yTitle.textContent = '% of users';
+  chart.appendChild(yTitle);
+}
+
+/* ----------------------------- Persistence & I/O -------------------------- */
+function getState(){ return { participants: Number(participants.value), mult: Number(mult.value), rows: rows.map(r=>({ q:r.q, oddsRaw:r.oddsRaw, oddsDec:r.oddsDec, a:r.a })) }; }
+function setState(state){
+  if (!state) return;
+  if (typeof state.participants === 'number') participants.value = clamp(state.participants, 1, 1e9);
+  if (typeof state.mult === 'number') mult.value = clamp(state.mult, 0.5, 2.0).toFixed(2);
+  rows = Array.isArray(state.rows) ? state.rows.map(r=>({
+    q: r.q || '',
+    oddsRaw: String(r.oddsRaw ?? (isFinite(r.oddsDec)? r.oddsDec.toFixed(2) : '2.50')),
+    oddsDec: clamp(isFinite(r.oddsDec) ? Number(r.oddsDec) : parseOddsToDecimal(r.oddsRaw) || 2.50, 1.01, 1e6),
+    a: r.a || 'Optimal pick'
+  })) : [];
+  qcount.value = rows.length || 1;
   renderRows();
-});
-document.getElementById('export').addEventListener('click', ()=>{
+}
+let _saveTimer = null;
+function saveStateDebounced(){ clearTimeout(_saveTimer); _saveTimer = setTimeout(()=>{ try{ localStorage.setItem(LS_KEY, JSON.stringify(getState())); }catch{} }, 150); }
+
+function exportJSON(){
   const m = Number(mult.value);
   const out = {
     title: 'F2P – Interactive Demo (optimal picks)',
     participants: Number(participants.value),
+    mult: m,
     questions: rows.map((r,i)=>({
       id: 'q'+(i+1),
       text: r.q,
-      answers: [{ id:'q'+(i+1)+'a1', label:r.a, decimal_odds: Number((Math.max(1.01, r.odds)*m).toFixed(4)), implied_p: 1.0/(Math.max(1.01, r.odds)*m) }]
+      answers: [{ id:'q'+(i+1)+'a1', label:r.a, decimal_odds: Number((Math.max(1.01, r.oddsDec)*m).toFixed(4)), implied_p: 1.0/(Math.max(1.01, r.oddsDec)*m) }],
+      meta: { odds_input: r.oddsRaw }
     }))
   };
   const blob = new Blob([JSON.stringify(out, null, 2)], {type:'application/json'});
   const url = URL.createObjectURL(blob);
   const a = document.createElement('a'); a.href=url; a.download='f2p_interactive_export.json'; a.click(); URL.revokeObjectURL(url);
-  statusEl.textContent = 'Exported JSON downloaded.';
+  showStatus('Exported JSON downloaded.');
+}
+function exportCSV(){
+  if (!lastPMF.length){ showStatus('Nothing to export.'); return; }
+  const n = rows.length;
+  const p = Number(participants.value);
+  let csv = 'score,probability_percent,expected_users\n';
+  for(let k=lastPMF.length-1;k>=0;k--){
+    const prob = lastPMF[k];
+    const users = Math.round(p * prob);
+    csv += `${k}/${n},${(prob*100).toFixed(6)},${users}\n`;
+  }
+  const blob = new Blob([csv], {type:'text/csv'});
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a'); a.href=url; a.download='score_distribution.csv'; a.click(); URL.revokeObjectURL(url);
+  showStatus('Exported CSV downloaded.');
+}
+function importJSONFromFile(file){
+  const reader = new FileReader();
+  reader.onload = () => {
+    try{
+      const data = JSON.parse(String(reader.result));
+      if (data && Array.isArray(data.questions)) {
+        const m = Number(data.mult ?? Number(mult.value));
+        rows = data.questions.map((q,i)=>{
+          const a1 = (q.answers && q.answers[0]) ? q.answers[0] : { decimal_odds: 2.50, label:'Optimal pick' };
+          const raw = q.meta?.odds_input ?? (isFinite(a1.decimal_odds) ? String(a1.decimal_odds) : '2.50');
+          const decBeforeMult = isFinite(a1.decimal_odds) && m>0 ? (Number(a1.decimal_odds)/m) : parseOddsToDecimal(raw) || 2.50;
+          return { q: q.text || `Question ${i+1}`, oddsRaw: raw, oddsDec: clamp(decBeforeMult,1.01,1e6), a: a1.label || 'Optimal pick' };
+        });
+        qcount.value = rows.length;
+        renderRows();
+        showStatus('Imported JSON.');
+      } else { showStatus('Invalid JSON structure.'); }
+    }catch(e){ showStatus('Failed to parse JSON.'); }
+  };
+  reader.readAsText(file);
+}
+function copyShareLink(){
+  const state = getState();
+  const encoded = encodeURIComponent(JSON.stringify(state));
+  const url = `${location.origin}${location.pathname}#state=${encoded}`;
+  navigator.clipboard.writeText(url).then(()=> showStatus('Shareable link copied.'), ()=> showStatus('Copy failed.'));
+}
+
+/* ----------------------------- Events ------------------------------------ */
+document.getElementById('addRow').addEventListener('click', ()=> addRow(templateInput.value || `Question ${rows.length+1}`, 2.50, 'Optimal pick'));
+document.getElementById('clearRows').addEventListener('click', ()=> { rows=[]; renderRows(); showStatus('Cleared.'); });
+document.getElementById('example').addEventListener('click', ()=> {
+  rows = [
+    {q:'Which team will win the match?', oddsRaw:'2.20', oddsDec:2.20, a:'Team A'},
+    {q:'How many corners will be taken?', oddsRaw:'4.80', oddsDec:4.80, a:'7-9 corners'},
+    {q:'How many shots on target for Player?', oddsRaw:'3.10', oddsDec:3.10, a:'2 shots'},
+    {q:'In what minute will the first goal be scored?', oddsRaw:'6.00', oddsDec:6.00, a:'31-45'},
+    {q:'Which listed player will receive a yellow card?', oddsRaw:'3.60', oddsDec:3.60, a:'Player X'},
+    {q:'How many tackles will Player make?', oddsRaw:'4.50', oddsDec:4.50, a:'2-3'},
+    {q:'How many passes will Player complete?', oddsRaw:'5.00', oddsDec:5.00, a:'50-59'},
+    {q:'Which team will have more corners?', oddsRaw:'1.90', oddsDec:1.90, a:'Team B'}
+  ];
+  qcount.value = rows.length;
+  renderRows();
 });
+document.getElementById('export').addEventListener('click', exportJSON);
+document.getElementById('exportCsv').addEventListener('click', exportCSV);
+document.getElementById('import').addEventListener('click', ()=> fileInput.click());
+fileInput.addEventListener('change', (e)=> {
+  const f = e.target.files?.[0];
+  if (f) importJSONFromFile(f);
+  e.target.value = '';
+});
+document.getElementById('share').addEventListener('click', copyShareLink);
+
 mult.addEventListener('input', render);
 participants.addEventListener('input', render);
-qcount.addEventListener('input', ()=> ensureCount(Math.max(1, Math.min(50, Number(qcount.value)||1))));
-ensureCount(Number(qcount.value));
-render();
+qcount.addEventListener('input', ()=> ensureCount(clamp(Number(qcount.value)||1, 1, 50)));
+
+/* ----------------------------- Bootstrap ---------------------------------- */
+(function bootstrap(){
+  try{
+    const hash = location.hash || '';
+    const m = hash.match(/state=([^&]+)/);
+    if (m) { setState(JSON.parse(decodeURIComponent(m[1]))); showStatus('Loaded from URL state.', 2000); return; }
+  }catch{}
+  try{
+    const raw = localStorage.getItem(LS_KEY);
+    if (raw){ setState(JSON.parse(raw)); showStatus('Loaded from autosave.', 1500); return; }
+  }catch{}
+  ensureCount(Number(document.getElementById('qcount').value));
+  render();
+})();
 </script>
