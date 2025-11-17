@@ -1,5 +1,5 @@
 <!doctype html><meta charset="utf-8">
-<title>F2P – Interactive Odds Demo (v2.2 minimal patch + CDF)</title>
+<title>F2P – Interactive Odds Demo (v2.3 minimal patch + CDF + easy hover)</title>
 <style>
   :root{--bg:#0b1220;--card:#0f172a;--muted:#9fb3cb;--text:#e4ecf7;--line:#2a3a59;--accent:#60a5fa;--ok:#22c55e}
   *{box-sizing:border-box;font-family:system-ui,-apple-system,Segoe UI,Roboto,Arial}
@@ -65,7 +65,6 @@
         <button id="export" class="btn">Export JSON</button>
       </div>
 
-      <!-- Bulk controls (kept) -->
       <div class="muted" style="margin-top:10px">Bulk odds</div>
       <div class="row" style="margin-top:6px">
         <input id="uniformOdds" type="text" inputmode="decimal" placeholder="Uniform odds e.g. 2.50" style="max-width:160px">
@@ -205,7 +204,7 @@ function render(){
   drawScoreChartWithCDF(pmf, Number(participants.value));
 }
 
-// Score distribution + CDF overlay
+// Score distribution + CDF overlay with easy-hover hot zones
 function drawScoreChartWithCDF(pmf, participantsCount){
   const w=1000, h=320, padL=66, padR=24, padT=28, padB=44; // extra left padding for rotated Y title
   chart.innerHTML = '';
@@ -214,8 +213,21 @@ function drawScoreChartWithCDF(pmf, participantsCount){
   const cdf = vals.map((_,i)=> vals.slice(0,i+1).reduce((a,b)=>a+b,0));
   const maxv = Math.max(100, ...vals); // keep headroom and consistent scale
   const bw = (w - padL - padR) / Math.max(1, n+1);
+  const plotH = h - padT - padB;
 
-  // Axes & grid (higher contrast)
+  // helpers
+  function yFor(vPct){ return h - padB - (vPct/maxv)*plotH; }
+  function showTip(k, clientX, clientY){
+    tt.style.display = 'block';
+    const r = chart.getBoundingClientRect();
+    tt.style.left = (clientX - r.left) + 'px';
+    tt.style.top  = (clientY - r.top) + 'px';
+    const users = Math.round(participantsCount * pmf[k]);
+    tt.textContent = `Score ${k}/${n} • PMF ${vals[k].toFixed(4)}% • CDF ${cdf[k].toFixed(4)}% • ~${users.toLocaleString()} users`;
+  }
+  function hideTip(){ tt.style.display = 'none'; }
+
+  // Axes & grid
   const g = document.createElementNS('http://www.w3.org/2000/svg','g');
   const xAxis = document.createElementNS('http://www.w3.org/2000/svg','line');
   xAxis.setAttribute('x1', padL); xAxis.setAttribute('x2', w - padR);
@@ -230,7 +242,7 @@ function drawScoreChartWithCDF(pmf, participantsCount){
   const ticks = 6;
   for(let t=0;t<=ticks;t++){
     const v = (t/ticks)*maxv;
-    const y = h - padB - (v/maxv)*(h - padT - padB);
+    const y = yFor(v);
     const line = document.createElementNS('http://www.w3.org/2000/svg','line');
     line.setAttribute('x1', padL); line.setAttribute('x2', w - padR);
     line.setAttribute('y1', y); line.setAttribute('y2', y);
@@ -245,29 +257,34 @@ function drawScoreChartWithCDF(pmf, participantsCount){
   }
   chart.appendChild(g);
 
-  // Bars (PMF)
+  // Bars + X labels + HOT ZONES
   const step = Math.max(1, Math.ceil((n+1) / 12));
   for(let k=0;k<=n;k++){
     const val = vals[k];
-    const bh = (val/maxv)*(h - padT - padB);
+    const bh = (val/maxv)*plotH;
     const x = padL + k*bw;
     const y = h - padB - bh;
+
+    // visible bar
     const rect = document.createElementNS('http://www.w3.org/2000/svg','rect');
     rect.setAttribute('x', x + bw*0.1); rect.setAttribute('y', y);
     rect.setAttribute('width', bw*0.8); rect.setAttribute('height', Math.max(0,bh));
     rect.setAttribute('fill', '#60a5fa'); rect.setAttribute('rx','2');
-    rect.addEventListener('mouseenter', ()=>{
-      tt.style.display = 'block';
-      const users = Math.round(participantsCount * (pmf[k]));
-      tt.textContent = `Score ${k}/${n} • PMF ${val.toFixed(4)}% • CDF ${cdf[k].toFixed(4)}% • ~${users.toLocaleString()} users`;
-    });
-    rect.addEventListener('mousemove', (e)=>{
-      const r = chart.getBoundingClientRect();
-      tt.style.left = (e.clientX - r.left) + 'px';
-      tt.style.top  = (e.clientY - r.top) + 'px';
-    });
-    rect.addEventListener('mouseleave', ()=>{ tt.style.display = 'none'; });
+    rect.addEventListener('mouseenter', (e)=> showTip(k, e.clientX, e.clientY));
+    rect.addEventListener('mousemove', (e)=> showTip(k, e.clientX, e.clientY));
+    rect.addEventListener('mouseleave', hideTip);
     chart.appendChild(rect);
+
+    // hot zone (full column height) — ensures hover for tiny bars
+    const hot = document.createElementNS('http://www.w3.org/2000/svg','rect');
+    hot.setAttribute('x', x); hot.setAttribute('y', padT);
+    hot.setAttribute('width', bw); hot.setAttribute('height', plotH);
+    hot.setAttribute('fill', 'rgba(0,0,0,0)'); // transparent but hit-testable
+    hot.style.pointerEvents = 'all';
+    hot.addEventListener('mouseenter', (e)=> showTip(k, e.clientX, e.clientY));
+    hot.addEventListener('mousemove', (e)=> showTip(k, e.clientX, e.clientY));
+    hot.addEventListener('mouseleave', hideTip);
+    chart.appendChild(hot);
 
     if (k % step === 0 || k === n){
       const lbl = document.createElementNS('http://www.w3.org/2000/svg','text');
@@ -278,11 +295,11 @@ function drawScoreChartWithCDF(pmf, participantsCount){
     }
   }
 
-  // CDF polyline
+  // CDF polyline + markers (also hoverable)
   const pts = cdf.map((cv,k)=>{
-    const x = padL + k*bw + bw*0.5; // center on bar
-    const y = h - padB - (cv/maxv)*(h - padT - padB);
-    return `${x},${y}`;
+    const cx = padL + k*bw + bw*0.5;
+    const cy = yFor(cv);
+    return `${cx},${cy}`;
   }).join(' ');
   const poly = document.createElementNS('http://www.w3.org/2000/svg','polyline');
   poly.setAttribute('points', pts);
@@ -291,14 +308,16 @@ function drawScoreChartWithCDF(pmf, participantsCount){
   poly.setAttribute('stroke-width', '2');
   chart.appendChild(poly);
 
-  // CDF markers
   for(let k=0;k<=n;k++){
-    const cv = cdf[k];
     const cx = padL + k*bw + bw*0.5;
-    const cy = h - padB - (cv/maxv)*(h - padT - padB);
+    const cy = yFor(cdf[k]);
     const c = document.createElementNS('http://www.w3.org/2000/svg','circle');
-    c.setAttribute('cx', cx); c.setAttribute('cy', cy); c.setAttribute('r', 2.5);
+    c.setAttribute('cx', cx); c.setAttribute('cy', cy); c.setAttribute('r', 3);
     c.setAttribute('fill', '#e5e7eb');
+    c.style.pointerEvents = 'all';
+    c.addEventListener('mouseenter', (e)=> showTip(k, e.clientX, e.clientY));
+    c.addEventListener('mousemove', (e)=> showTip(k, e.clientX, e.clientY));
+    c.addEventListener('mouseleave', hideTip);
     chart.appendChild(c);
   }
 
@@ -309,7 +328,7 @@ function drawScoreChartWithCDF(pmf, participantsCount){
   xTitle.textContent = 'Score';
   chart.appendChild(xTitle);
 
-  // Rotated Y axis title (avoid clash with ticks)
+  // Rotated Y axis title (no clash with ticks)
   const yTitle = document.createElementNS('http://www.w3.org/2000/svg','text');
   yTitle.setAttribute('x', 16); yTitle.setAttribute('y', (h - padB + padT)/2);
   yTitle.setAttribute('transform', `rotate(-90, 16, ${(h - padB + padT)/2})`);
@@ -317,7 +336,7 @@ function drawScoreChartWithCDF(pmf, participantsCount){
   yTitle.textContent = '% of users';
   chart.appendChild(yTitle);
 
-  // Chart title inside SVG (more visible)
+  // Chart title inside SVG
   const title = document.createElementNS('http://www.w3.org/2000/svg','text');
   title.setAttribute('x', padL); title.setAttribute('y', padT - 8);
   title.setAttribute('font-size','13'); title.setAttribute('fill','#ffffff'); title.setAttribute('font-weight','700');
@@ -325,8 +344,7 @@ function drawScoreChartWithCDF(pmf, participantsCount){
   chart.appendChild(title);
 
   // Legend
-  const lgY = padT - 12;
-  const lgX = w - padR - 210;
+  const lgY = padT - 12, lgX = w - padR - 210;
   const barSwatch = document.createElementNS('http://www.w3.org/2000/svg','rect');
   barSwatch.setAttribute('x', lgX); barSwatch.setAttribute('y', lgY);
   barSwatch.setAttribute('width', 14); barSwatch.setAttribute('height', 10); barSwatch.setAttribute('fill','#60a5fa');
@@ -406,3 +424,4 @@ qcount.addEventListener('input', ()=> ensureCount(Math.max(1, Math.min(50, Numbe
 ensureCount(Number(qcount.value));
 render();
 </script>
+
