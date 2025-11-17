@@ -1,9 +1,7 @@
-<!-- /index.html : F2P – Interactive Odds Demo (v3.4: lock rows + copy top row to all) -->
-<!doctype html>
-<meta charset="utf-8" />
-<title>F2P – Interactive Odds Demo (v3.4)</title>
+<!doctype html><meta charset="utf-8">
+<title>F2P – Interactive Odds Demo (v2.1 minimal patch)</title>
 <style>
-  :root{--bg:#0b1220;--card:#0f172a;--muted:#8aa0b8;--text:#e4ecf7;--line:#20304b;--accent:#60a5fa;--ok:#22c55e;--warn:#f59e0b}
+  :root{--bg:#0b1220;--card:#0f172a;--muted:#8aa0b8;--text:#e4ecf7;--line:#20304b;--accent:#60a5fa;--ok:#22c55e}
   *{box-sizing:border-box;font-family:system-ui,-apple-system,Segoe UI,Roboto,Arial}
   body{margin:0;background:var(--bg);color:var(--text)}
   .wrap{max-width:1140px;margin:22px auto;padding:0 16px}
@@ -13,46 +11,32 @@
   .card{background:var(--card);border:1px solid var(--line);border-radius:16px;padding:16px}
   .muted{color:var(--muted);font-size:12px}
   .big{font-weight:700;font-size:18px}
-  input[type=text]{width:100%;background:#0b152a;color:var(--text);border:1px solid var(--line);border-radius:10px;padding:8px 10px}
+  input[type=number], input[type=text]{width:100%;background:#0b152a;color:var(--text);border:1px solid var(--line);border-radius:10px;padding:8px 10px}
   input[type=range]{width:220px}
-  .qrow{
-    display:grid;
-    grid-template-columns:28px 1fr 160px 220px 90px 40px 40px 40px;
-    gap:10px;align-items:center;margin:8px 0;padding:10px;
-    border:1px solid var(--line);border-radius:12px;background:rgba(255,255,255,.02)
-  }
-  .qrow.locked{outline:2px dashed var(--warn);outline-offset:2px}
-  .handle{cursor:grab;text-align:center;user-select:none}
-  .handle:active{cursor:grabbing}
+  .qrow{display:grid;grid-template-columns:1fr 140px 220px 40px;gap:10px;align-items:center;margin:8px 0;padding:10px;border:1px solid var(--line);border-radius:12px;background:rgba(255,255,255,.02)}
   .btn{padding:8px 12px;border:1px solid var(--line);border-radius:10px;background:#15233a;color:var(--text);cursor:pointer}
-  .btn.icon{width:36px;height:36px;display:grid;place-items:center}
   .btn:disabled{opacity:.6;cursor:not-allowed}
-  .chart{width:100%;height:320px;border:1px solid var(--line);border-radius:12px;background:#0b152a;display:block}
+  .chart{width:100%;height:300px;border:1px solid var(--line);border-radius:12px;background:#0b152a;display:block}
   .table{width:100%;border-collapse:collapse}
   .table th,.table td{border-bottom:1px solid #1b2a43;padding:8px 10px;text-align:right}
   .table th:first-child,.table td:first-child{text-align:left}
-  .pill{display:inline-block;padding:2px 8px;border:1px solid var(--line);border-radius:999px;font-size:12px}
   .row{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
+  .pill{display:inline-block;padding:2px 8px;border:1px solid var(--line);border-radius:999px;font-size:12px}
   .tooltip{position:absolute;pointer-events:none;background:#111827;color:#e5e7eb;border:1px solid #374151;border-radius:8px;padding:6px 8px;font-size:12px;transform:translate(-50%,-120%);white-space:nowrap}
-  .drag-hover{outline:2px dashed #3b82f6;outline-offset:2px}
-  @media (max-width:1000px){
-    .qrow{grid-template-columns:24px 1fr 140px 1fr 80px 36px 36px 36px}
-    input[type=range]{width:160px}
-  }
 </style>
 
 <div class="wrap">
-  <h2 style="margin:0 0 6px 0">F2P – Interactive Odds Demo (single HTML, v3.4)</h2>
-  <div class="muted">Lock rows to protect them from bulk edits. Use “Copy top row → all” to make each unlocked question identical to the first.</div>
+  <h2 style="margin:0 0 6px 0">F2P – Interactive Odds Demo (single HTML)</h2>
+  <div class="muted">Enter question text and decimal odds for the <b>optimal pick</b>. Use the controls to project winners and the full score distribution.</div>
 
   <div class="grid g2" style="margin-top:12px">
     <div class="card">
       <div class="muted">Participants</div>
-      <input id="participants" type="text" inputmode="numeric" pattern="[0-9]*" value="10000" aria-label="Participants">
+      <input id="participants" type="number" min="100" step="100" value="10000">
       <div class="muted" style="margin-top:8px">Number of questions</div>
-      <input id="qcount" type="text" inputmode="numeric" pattern="[0-9]*" value="8" aria-label="Number of questions">
+      <input id="qcount" type="number" min="1" max="50" step="1" value="8">
       <div class="muted" style="margin-top:8px">Question template</div>
-      <input id="template" list="templates" type="text" placeholder="Type or choose (auto-fills when you add rows)" aria-label="Question template">
+      <input id="template" list="templates" type="text" placeholder="Type or choose (auto-fills when you add rows)">
       <datalist id="templates">
         <option>Which team will win the match?</option>
         <option>How many corners will be taken?</option>
@@ -65,13 +49,11 @@
     </div>
 
     <div class="card">
-      <div class="muted row">
-        <span>Odds multiplier</span>
-        <span title="Multiplies each DECIMAL odd before converting to probability (p = 1/(odds × multiplier)). Lower = easier; Higher = harder.">(?)</span>
-        <span class="pill" id="multDisp">×1.00</span>
+      <div class="muted row" title="Multiplies each DECIMAL odd before converting to probability (p = 1/(odds × multiplier)). Lower = easier; Higher = harder.">
+        <span>Odds multiplier</span><span class="pill" id="multDisp">×1.00</span>
       </div>
       <div class="row" style="margin-top:6px">
-        <input id="mult" type="range" min="0.50" max="2.00" step="0.01" value="1.00" aria-label="Odds multiplier slider">
+        <input id="mult" type="range" min="0.50" max="2.00" step="0.01" value="1.00">
       </div>
 
       <div class="muted" style="margin-top:10px">Quick actions</div>
@@ -79,37 +61,23 @@
         <button id="addRow" class="btn">Add question</button>
         <button id="clearRows" class="btn">Clear all</button>
         <button id="example" class="btn">Load example</button>
-        <button id="import" class="btn">Import JSON</button>
-        <input id="file" type="file" accept=".json,application/json" style="display:none" />
         <button id="export" class="btn">Export JSON</button>
-        <button id="exportCsv" class="btn">Export CSV</button>
-        <button id="share" class="btn">Copy link</button>
       </div>
 
-      <div class="muted" style="margin-top:12px">Set the same odds for every question</div>
+      <!-- NEW: minimal-impact bulk controls -->
+      <div class="muted" style="margin-top:10px">Bulk odds</div>
       <div class="row" style="margin-top:6px">
-        <input id="allOdds" type="text" inputmode="decimal" placeholder="e.g. 2.50, 5/2, +150" aria-label="Set all question odds">
-        <button id="applyAllOdds" class="btn">Apply to all</button>
-        <label class="row" style="gap:6px;margin-left:auto" title="When enabled, editing any odds will update all UNLOCKED rows.">
-          <input id="syncOdds" type="checkbox" aria-label="Keep all odds in sync">
-          <span class="muted">Keep odds in sync</span>
-        </label>
+        <input id="uniformOdds" type="text" inputmode="decimal" placeholder="Uniform odds e.g. 2.50" style="max-width:160px">
+        <button id="applyUniform" class="btn">Apply to all odds</button>
+        <button id="cloneTop" class="btn" title="Make every row identical to the first row (question, answer, odds)">Copy top row → all</button>
       </div>
 
-      <!-- NEW: copy top row to all -->
-      <div class="muted" style="margin-top:12px">Make every unlocked question the same as the first</div>
-      <div class="row" style="margin-top:6px">
-        <button id="cloneTopAll" class="btn">Copy top row → all</button>
-        <span class="muted">Copies text, answer, and odds to all UNLOCKED rows.</span>
-      </div>
-
-      <div id="status" class="muted" style="margin-top:6px;min-height:1lh"></div>
+      <div id="status" class="muted" style="margin-top:6px"></div>
     </div>
   </div>
 
   <div class="card" style="margin-top:12px">
-    <div class="muted">Questions (drag ◧ to reorder; ⎘ duplicate; 🔒 lock protects from bulk edits)</div>
-    <div class="muted" style="margin:6px 0">Implied probability is computed after applying the global multiplier.</div>
+    <div class="muted">Questions (type to edit; odds = decimal for optimal pick)</div>
     <div id="qlist"></div>
   </div>
 
@@ -126,20 +94,15 @@
 
   <div class="card" style="margin-top:12px;position:relative">
     <div class="muted" style="margin-bottom:6px">
-      <b>Score distribution</b> — X-axis: score (0 to N). Y-axis: % of users at that score.
+      <b>Score distribution</b> — X-axis: score (0..N). Y-axis: % of users at that score.
     </div>
-    <svg id="chart" class="chart" viewBox="0 0 1000 320" preserveAspectRatio="none" aria-label="Score distribution bar chart"></svg>
+    <svg id="chart" class="chart" viewBox="0 0 1000 300" preserveAspectRatio="none"></svg>
     <div id="tt" class="tooltip" style="display:none"></div>
   </div>
 </div>
 
 <script>
-/* ----------------------------- State & Models ----------------------------- */
 let rows = [];
-let lastPMF = [];
-let syncOddsFlag = false;
-const LS_KEY = 'f2p_v3_state';
-
 const templateInput = document.getElementById('template');
 const participants = document.getElementById('participants');
 const qcount = document.getElementById('qcount');
@@ -153,126 +116,54 @@ const winners = document.getElementById('winners');
 const chart = document.getElementById('chart');
 const distTbl = document.getElementById('dist');
 const statusEl = document.getElementById('status');
-const fileInput = document.getElementById('file');
-const tooltip = document.getElementById('tt');
-const allOdds = document.getElementById('allOdds');
-const applyAllOddsBtn = document.getElementById('applyAllOdds');
-const syncOddsEl = document.getElementById('syncOdds');
-const cloneTopAllBtn = document.getElementById('cloneTopAll');
+const tt = document.getElementById('tt');
+const uniformOdds = document.getElementById('uniformOdds');
 
-/* ----------------------------- Utilities --------------------------------- */
-const clamp = (v, lo, hi) => Math.max(lo, Math.min(hi, v));
-function showStatus(msg, ms=1800){ statusEl.textContent = msg; if(ms){ setTimeout(()=>{ statusEl.textContent=''; }, ms); }}
-function parseOddsToDecimal(str){
-  const s = String(str || '').trim();
-  if(!s) return NaN;
-  if (/^[+-]?\d+(\.\d+)?$/.test(s)) {
-    const n = Number(s);
-    if (s.startsWith('+') || s.startsWith('-')) {
-      if (n >= 100) return 1 + (n/100);
-      if (n <= -100) return 1 + (100/Math.abs(n));
-    }
-    return n;
-  }
-  const frac = s.match(/^(\d+)\s*\/\s*(\d+)$/);
-  if (frac) { const a = Number(frac[1]), b = Number(frac[2]); if (b > 0) return 1 + (a / b); }
-  return NaN;
-}
+function status(msg, ms=1600){ statusEl.textContent = msg; if(ms){ setTimeout(()=>statusEl.textContent='', ms); } }
 
-/* ----------------------------- Rows Ops ---------------------------------- */
 function addRow(q='', odds=2.50, a='Optimal pick'){
-  const dec = Number(odds);
-  rows.push({ q, oddsRaw: String(odds), oddsDec: isFinite(dec)? dec : 2.50, a, locked:false });
+  rows.push({q, odds: Number(odds) || 2.50, a});
   renderRows();
 }
-function duplicateRow(idx){
-  const r = rows[idx];
-  rows.splice(idx+1, 0, { q: r.q, oddsRaw: r.oddsRaw, oddsDec: r.oddsDec, a: r.a, locked:false }); // don't duplicate lock to avoid surprises
-  renderRows();
+function removeRow(idx){
+  rows.splice(idx,1);
+  render();
 }
-function removeRow(idx){ rows.splice(idx,1); render(); }
 function ensureCount(n){
-  while (rows.length < n) {
+  while(rows.length < n){
     const tmpl = templateInput.value.trim();
     addRow(tmpl || `Question ${rows.length+1}`, 2.50, 'Optimal pick');
   }
-  while (rows.length > n) rows.pop();
+  while(rows.length > n){ rows.pop(); }
   renderRows();
 }
-
-/* ----------------------------- Rendering --------------------------------- */
 function renderRows(){
   qlist.innerHTML = '';
-  const m = Number(mult.value);
   rows.forEach((r, i) => {
     const wrap = document.createElement('div');
-    wrap.className = 'qrow' + (r.locked ? ' locked' : '');
-    wrap.setAttribute('draggable','true');
-    wrap.dataset.index = i;
-
-    const impliedP = 1.0 / (Math.max(1.01, r.oddsDec) * m);
-
+    wrap.className = 'qrow';
     wrap.innerHTML = `
-      <div class="handle" title="Drag to reorder" aria-label="Drag handle">◧</div>
-      <input type="text" list="templates" value="${r.q.replaceAll('"','&quot;')}" aria-label="Question text" ${r.locked?'disabled':''}>
-      <input type="text" inputmode="decimal" value="${r.oddsRaw.replaceAll('"','&quot;')}" aria-label="Odds (decimal, fractional, or American)" ${r.locked?'disabled':''}>
-      <input type="text" value="${r.a.replaceAll('"','&quot;')}" aria-label="Optimal answer label" ${r.locked?'disabled':''}>
-      <div class="pill" title="Implied probability after multiplier">${(impliedP*100).toFixed(2)}%</div>
-      <button class="btn icon" title="Duplicate" aria-label="Duplicate">⎘</button>
-      <button class="btn icon" title="${r.locked?'Unlock':'Lock'} row" aria-label="Lock row">${r.locked?'🔒':'🔓'}</button>
-      <button class="btn icon" title="Remove" aria-label="Remove">✕</button>
+      <input type="text" list="templates" value="${r.q.replaceAll('"','&quot;')}" aria-label="Question text">
+      <!-- CHANGED: odds are typeable text (no steppers) -->
+      <input type="text" inputmode="decimal" value="${r.odds.toFixed(2)}" aria-label="Decimal odds">
+      <input type="text" value="${r.a.replaceAll('"','&quot;')}" aria-label="Optimal answer label">
+      <button class="btn" aria-label="Remove">✕</button>
     `;
-    const [handle, qi, oi, ai, , dupBtn, lockBtn, rm] = wrap.querySelectorAll('div.handle, input, button');
-
-    // typing
-    qi?.addEventListener('input', ()=>{ r.q = qi.value; render(); });
-    oi?.addEventListener('input', ()=>{
-      const raw = oi.value; r.oddsRaw = raw;
-      const d = parseOddsToDecimal(raw);
-      if (isFinite(d)) {
-        const dec = clamp(d, 1.01, 1e6);
-        if (syncOddsFlag) {
-          rows = rows.map(x => x.locked ? x : ({ ...x, oddsRaw: raw, oddsDec: dec }));
-          renderRows(); // reflect propagation
-          return;
-        } else {
-          r.oddsDec = dec;
-          render();
-        }
-      }
+    const [qi, oi, ai, rm] = wrap.querySelectorAll('input,button');
+    qi.addEventListener('input', ()=>{ r.q = qi.value; render(); });
+    oi.addEventListener('input', ()=>{ 
+      const v = parseFloat(oi.value);
+      if (!isNaN(v)){ r.odds = Math.max(1.01, v); }
+      render(); 
     });
-    oi?.addEventListener('blur', ()=>{ if (!r.oddsRaw.trim()) { r.oddsRaw = r.oddsDec.toFixed(2); oi.value = r.oddsRaw; }});
-    ai?.addEventListener('input', ()=>{ r.a = ai.value; render(); });
-
-    // actions
-    dupBtn.addEventListener('click', ()=> duplicateRow(i));
-    lockBtn.addEventListener('click', ()=>{
-      r.locked = !r.locked;
-      renderRows(); // update disabled fields + icon
-    });
+    ai.addEventListener('input', ()=>{ r.a = ai.value; render(); });
     rm.addEventListener('click', ()=> removeRow(i));
-    ai?.addEventListener('keydown', (e)=>{ if (e.key === 'Enter' && i === rows.length - 1) addRow(templateInput.value || `Question ${rows.length+1}`, 2.50, 'Optimal pick'); });
-
-    // DnD
-    wrap.addEventListener('dragstart', (e)=>{ e.dataTransfer.setData('text/plain', String(i)); e.dataTransfer.effectAllowed='move'; });
-    wrap.addEventListener('dragover', (e)=>{ e.preventDefault(); wrap.classList.add('drag-hover'); });
-    wrap.addEventListener('dragleave', ()=> wrap.classList.remove('drag-hover'));
-    wrap.addEventListener('drop', (e)=>{
-      e.preventDefault(); wrap.classList.remove('drag-hover');
-      const from = Number(e.dataTransfer.getData('text/plain'));
-      const to = i;
-      if (isFinite(from) && from !== to){
-        const item = rows.splice(from,1)[0];
-        rows.splice(to,0,item);
-        renderRows();
-      }
-    });
-
     qlist.appendChild(wrap);
   });
   render();
 }
 
+// Poisson–binomial PMF (independent questions)
 function poissonBinomialPMF(ps){
   const n = ps.length;
   const dp = new Float64Array(n+1);
@@ -294,36 +185,36 @@ function render(){
   qstat.textContent = rows.length.toString();
 
   const m = Number(mult.value);
-  const ps = rows.map(r => 1.0 / (Math.max(1.01, r.oddsDec) * m));
+  const ps = rows.map(r => 1.0 / (Math.max(1.01, r.odds) * m));
 
+  // Top-line stats
   let combined = 1.0;
   for (const p of ps) combined *= p;
   comb.textContent = (combined*100).toFixed(6) + '%';
-  const expWinners = Math.max(1, Math.round(Number(participants.value) * combined));
-  winners.textContent = expWinners.toLocaleString();
+  winners.textContent = Math.max(1, Math.round(Number(participants.value) * combined)).toLocaleString();
 
-  lastPMF = poissonBinomialPMF(ps);
-
+  // Table
+  const pmf = poissonBinomialPMF(ps);
   const head = `<tr><th>Score</th><th>Probability %</th><th>Expected Users @ ${Number(participants.value).toLocaleString()}</th></tr>`;
-  const rowsHtml = lastPMF.map((prob, k) => {
+  const rowsHtml = pmf.map((prob, k) => {
     const users = Math.round(Number(participants.value) * prob);
     return `<tr><td>${k}/${ps.length}</td><td>${(prob*100).toFixed(6)}%</td><td>${users.toLocaleString()}</td></tr>`;
   }).reverse().join('');
   distTbl.innerHTML = head + rowsHtml;
 
-  drawScoreChart(lastPMF, Number(participants.value));
-  saveStateDebounced();
+  drawScoreChart(pmf, Number(participants.value));
 }
 
-/* ----------------------------- Score Chart -------------------------------- */
+// NEW: score distribution chart (X=score 0..N, Y=% users)
 function drawScoreChart(pmf, participantsCount){
-  const n = pmf.length ? pmf.length - 1 : 0;
-  const w=1000, h=320, padL=50, padR=20, padT=20, padB=40;
+  const w=1000, h=300, padL=50, padR=20, padT=20, padB=36;
   chart.innerHTML = '';
-  const valsPct = pmf.map(v=>v*100);
-  const maxv = Math.max(1, Math.max(...valsPct));
+  const n = pmf.length ? pmf.length-1 : 0;
+  const vals = pmf.map(p=>p*100);
+  const maxv = Math.max(1, ...vals);
   const bw = (w - padL - padR) / Math.max(1, n+1);
 
+  // Axes
   const g = document.createElementNS('http://www.w3.org/2000/svg','g');
   const xAxis = document.createElementNS('http://www.w3.org/2000/svg','line');
   xAxis.setAttribute('x1', padL); xAxis.setAttribute('x2', w - padR);
@@ -335,8 +226,9 @@ function drawScoreChart(pmf, participantsCount){
   yAxis.setAttribute('stroke', '#20304b');
   g.appendChild(xAxis); g.appendChild(yAxis);
 
+  // Y ticks
   const ticks = 5;
-  for (let t=0; t<=ticks; t++){
+  for(let t=0;t<=ticks;t++){
     const v = (t/ticks)*maxv;
     const y = h - padB - (v/maxv)*(h - padT - padB);
     const line = document.createElementNS('http://www.w3.org/2000/svg','line');
@@ -346,28 +238,23 @@ function drawScoreChart(pmf, participantsCount){
     g.appendChild(line);
     const lbl = document.createElementNS('http://www.w3.org/2000/svg','text');
     lbl.setAttribute('x', padL - 8); lbl.setAttribute('y', y+4);
-    lbl.setAttribute('text-anchor', 'end'); lbl.setAttribute('font-size','11');
-    lbl.setAttribute('fill', '#8aa0b8');
+    lbl.setAttribute('text-anchor','end'); lbl.setAttribute('font-size','11'); lbl.setAttribute('fill','#8aa0b8');
     lbl.textContent = v.toFixed(0) + '%';
     g.appendChild(lbl);
   }
   chart.appendChild(g);
 
-  const tt = tooltip;
+  // Bars + labels + tooltip
   const step = Math.max(1, Math.ceil((n+1) / 12));
-  for(let k=0; k<=n; k++){
-    const val = valsPct[k];
+  for(let k=0;k<=n;k++){
+    const val = vals[k];
     const bh = (val/maxv)*(h - padT - padB);
     const x = padL + k*bw;
     const y = h - padB - bh;
-
     const rect = document.createElementNS('http://www.w3.org/2000/svg','rect');
-    rect.setAttribute('x', x + bw*0.1);
-    rect.setAttribute('y', y);
-    rect.setAttribute('width', bw*0.8);
-    rect.setAttribute('height', bh);
-    rect.setAttribute('fill', '#60a5fa');
-    rect.setAttribute('rx', '2');
+    rect.setAttribute('x', x + bw*0.1); rect.setAttribute('y', y);
+    rect.setAttribute('width', bw*0.8); rect.setAttribute('height', bh);
+    rect.setAttribute('fill', '#60a5fa'); rect.setAttribute('rx','2');
     rect.addEventListener('mouseenter', ()=>{
       tt.style.display = 'block';
       const users = Math.round(participantsCount * (pmf[k]));
@@ -383,193 +270,83 @@ function drawScoreChart(pmf, participantsCount){
 
     if (k % step === 0 || k === n){
       const lbl = document.createElementNS('http://www.w3.org/2000/svg','text');
-      lbl.setAttribute('x', x + bw*0.5);
-      lbl.setAttribute('y', h - padB + 14);
-      lbl.setAttribute('text-anchor', 'middle');
-      lbl.setAttribute('font-size','11'); lbl.setAttribute('fill','#8aa0b8');
+      lbl.setAttribute('x', x + bw*0.5); lbl.setAttribute('y', h - padB + 14);
+      lbl.setAttribute('text-anchor','middle'); lbl.setAttribute('font-size','11'); lbl.setAttribute('fill','#8aa0b8');
       lbl.textContent = k;
       chart.appendChild(lbl);
     }
   }
-
   const xTitle = document.createElementNS('http://www.w3.org/2000/svg','text');
-  xTitle.setAttribute('x', (w - padR + padL)/2);
-  xTitle.setAttribute('y', h - 6);
-  xTitle.setAttribute('text-anchor','middle');
-  xTitle.setAttribute('font-size','12'); xTitle.setAttribute('fill', '#8aa0b8');
-  xTitle.textContent = 'Score';
-  chart.appendChild(xTitle);
-
+  xTitle.setAttribute('x',(w - padR + padL)/2); xTitle.setAttribute('y', h - 6);
+  xTitle.setAttribute('text-anchor','middle'); xTitle.setAttribute('font-size','12'); xTitle.setAttribute('fill','#8aa0b8');
+  xTitle.textContent = 'Score'; chart.appendChild(xTitle);
   const yTitle = document.createElementNS('http://www.w3.org/2000/svg','text');
-  yTitle.setAttribute('x', 14);
-  yTitle.setAttribute('y', padT + 8);
-  yTitle.setAttribute('font-size','12'); yTitle.setAttribute('fill', '#8aa0b8');
-  yTitle.textContent = '% of users';
-  chart.appendChild(yTitle);
+  yTitle.setAttribute('x', 14); yTitle.setAttribute('y', padT + 8);
+  yTitle.setAttribute('font-size','12'); yTitle.setAttribute('fill','#8aa0b8');
+  yTitle.textContent = '% of users'; chart.appendChild(yTitle);
 }
 
-/* ----------------------------- Persistence & I/O -------------------------- */
-function getState(){
-  return {
-    participants: Number(participants.value),
-    mult: Number(mult.value),
-    syncOdds: !!syncOddsFlag,
-    rows: rows.map(r=>({ q:r.q, oddsRaw:r.oddsRaw, oddsDec:r.oddsDec, a:r.a, locked: !!r.locked }))
-  };
-}
-function setState(state){
-  if (!state) return;
-  if (typeof state.participants === 'number') participants.value = clamp(state.participants, 1, 1e9);
-  if (typeof state.mult === 'number') mult.value = clamp(state.mult, 0.5, 2.0).toFixed(2);
-  syncOddsFlag = !!state.syncOdds; syncOddsEl.checked = syncOddsFlag;
-  rows = Array.isArray(state.rows) ? state.rows.map(r=>({
-    q: r.q || '',
-    oddsRaw: String(r.oddsRaw ?? (isFinite(r.oddsDec)? r.oddsDec.toFixed(2) : '2.50')),
-    oddsDec: clamp(isFinite(r.oddsDec) ? Number(r.oddsDec) : parseOddsToDecimal(r.oddsRaw) || 2.50, 1.01, 1e6),
-    a: r.a || 'Optimal pick',
-    locked: !!r.locked
-  })) : [];
-  qcount.value = rows.length || 1;
+// Bulk: set all odds to one number (decimal)
+function applyUniformOdds(){
+  const v = parseFloat(uniformOdds.value.trim());
+  if (isNaN(v) || v < 1.01){ status('Enter valid decimal odds ≥ 1.01'); return; }
+  rows.forEach(r => { r.odds = v; });
   renderRows();
+  status(`Applied ${v.toFixed(2)} to all odds.`);
 }
-let _saveTimer = null;
-function saveStateDebounced(){ clearTimeout(_saveTimer); _saveTimer = setTimeout(()=>{ try{ localStorage.setItem(LS_KEY, JSON.stringify(getState())); }catch{} }, 150); }
 
-function exportJSON(){
+// Bulk: copy top row → all rows (q, a, odds)
+function copyTopRowToAll(){
+  if (rows.length === 0) return;
+  const t = rows[0];
+  rows = rows.map((r,i)=> i===0 ? r : ({ q:t.q, odds: t.odds, a:t.a }));
+  renderRows();
+  status('Copied top row to all.');
+}
+
+document.getElementById('addRow').addEventListener('click', ()=> addRow(templateInput.value || `Question ${rows.length+1}`, 2.50, 'Optimal pick'));
+document.getElementById('clearRows').addEventListener('click', ()=> { rows=[]; renderRows(); });
+document.getElementById('example').addEventListener('click', ()=> {
+  rows = [
+    {q:'Which team will win the match?', odds:2.20, a:'Team A'},
+    {q:'How many corners will be taken?', odds:4.80, a:'7-9 corners'},
+    {q:'How many shots on target for Player?', odds:3.10, a:'2 shots'},
+    {q:'In what minute will the first goal be scored?', odds:6.00, a:'31-45'},
+    {q:'Which listed player will receive a yellow card?', odds:3.60, a:'Player X'},
+    {q:'How many tackles will Player make?', odds:4.50, a:'2-3'},
+    {q:'How many passes will Player complete?', odds:5.00, a:'50-59'},
+    {q:'Which team will have more corners?', odds:1.90, a:'Team B'}
+  ];
+  qcount.value = rows.length;
+  renderRows();
+});
+document.getElementById('export').addEventListener('click', ()=>{
   const m = Number(mult.value);
   const out = {
     title: 'F2P – Interactive Demo (optimal picks)',
     participants: Number(participants.value),
-    mult: m,
-    syncOdds: !!syncOddsFlag,
     questions: rows.map((r,i)=>({
       id: 'q'+(i+1),
       text: r.q,
-      answers: [{ id:'q'+(i+1)+'a1', label:r.a, decimal_odds: Number((Math.max(1.01, r.oddsDec)*m).toFixed(4)), implied_p: 1.0/(Math.max(1.01, r.oddsDec)*m) }],
-      meta: { odds_input: r.oddsRaw, locked: !!r.locked }
+      answers: [{ id:'q'+(i+1)+'a1', label:r.a, decimal_odds: Number((Math.max(1.01, r.odds)*m).toFixed(4)), implied_p: 1.0/(Math.max(1.01, r.odds)*m) }]
     }))
   };
   const blob = new Blob([JSON.stringify(out, null, 2)], {type:'application/json'});
   const url = URL.createObjectURL(blob);
   const a = document.createElement('a'); a.href=url; a.download='f2p_interactive_export.json'; a.click(); URL.revokeObjectURL(url);
-  showStatus('Exported JSON downloaded.');
-}
-function exportCSV(){
-  if (!lastPMF.length){ showStatus('Nothing to export.'); return; }
-  const n = rows.length, p = Number(participants.value);
-  let csv = 'score,probability_percent,expected_users\n';
-  for(let k=lastPMF.length-1;k>=0;k--){
-    const prob = lastPMF[k]; const users = Math.round(p * prob);
-    csv += `${k}/${n},${(prob*100).toFixed(6)},${users}\n`;
-  }
-  const blob = new Blob([csv], {type:'text/csv'});
-  const url = URL.createObjectURL(blob);
-  const a = document.createElement('a'); a.href=url; a.download='score_distribution.csv'; a.click(); URL.revokeObjectURL(url);
-  showStatus('Exported CSV downloaded.');
-}
-function importJSONFromFile(file){
-  const reader = new FileReader();
-  reader.onload = () => {
-    try{
-      const data = JSON.parse(String(reader.result));
-      if (data && Array.isArray(data.questions)) {
-        const m = Number(data.mult ?? Number(mult.value));
-        syncOddsFlag = !!data.syncOdds; syncOddsEl.checked = syncOddsFlag;
-        rows = data.questions.map((q,i)=>{
-          const a1 = (q.answers && q.answers[0]) ? q.answers[0] : { decimal_odds: 2.50, label:'Optimal pick' };
-          const raw = q.meta?.odds_input ?? (isFinite(a1.decimal_odds) ? String(a1.decimal_odds) : '2.50');
-          const decBeforeMult = isFinite(a1.decimal_odds) && m>0 ? (Number(a1.decimal_odds)/m) : parseOddsToDecimal(raw) || 2.50;
-          return { q: q.text || `Question ${i+1}`, oddsRaw: raw, oddsDec: clamp(decBeforeMult,1.01,1e6), a: a1.label || 'Optimal pick', locked: !!q.meta?.locked };
-        });
-        qcount.value = rows.length;
-        renderRows();
-        showStatus('Imported JSON.');
-      } else { showStatus('Invalid JSON structure.'); }
-    }catch(e){ showStatus('Failed to parse JSON.'); }
-  };
-  reader.readAsText(file);
-}
-function copyShareLink(){
-  const state = getState();
-  const encoded = encodeURIComponent(JSON.stringify(state));
-  const url = `${location.origin}${location.pathname}#state=${encoded}`;
-  navigator.clipboard.writeText(url).then(()=> showStatus('Shareable link copied.'), ()=> showStatus('Copy failed.'));
-}
-
-/* ----------------------------- Bulk Ops ---------------------------------- */
-function applyAllOdds(){
-  const raw = allOdds.value.trim();
-  const dec = parseOddsToDecimal(raw);
-  if (!isFinite(dec) || dec < 1.01){ showStatus('Enter valid odds (e.g., 2.50, 5/2, +150).'); return; }
-  const clamped = clamp(dec, 1.01, 1e6);
-  rows = rows.map(r => r.locked ? r : ({ ...r, oddsRaw: raw, oddsDec: clamped }));
-  renderRows();
-  showStatus(`Applied ${raw} to ${rows.filter(r=>!r.locked).length} unlocked questions.`);
-}
-function copyTopRowToAll(){
-  if (rows.length === 0){ showStatus('No rows.'); return; }
-  const t = rows[0];
-  rows = rows.map((r, i) => {
-    if (i === 0 || r.locked) return r;
-    return { ...r, q: t.q, a: t.a, oddsRaw: t.oddsRaw, oddsDec: t.oddsDec };
-  });
-  renderRows();
-  showStatus('Copied top row to all unlocked questions.');
-}
-
-/* ----------------------------- Events ------------------------------------ */
-document.getElementById('addRow').addEventListener('click', ()=> addRow(templateInput.value || `Question ${rows.length+1}`, 2.50, 'Optimal pick'));
-document.getElementById('clearRows').addEventListener('click', ()=> { rows=[]; renderRows(); showStatus('Cleared.'); });
-document.getElementById('example').addEventListener('click', ()=> {
-  rows = [
-    {q:'Which team will win the match?', oddsRaw:'2.20', oddsDec:2.20, a:'Team A', locked:false},
-    {q:'How many corners will be taken?', oddsRaw:'4.80', oddsDec:4.80, a:'7-9 corners', locked:false},
-    {q:'How many shots on target for Player?', oddsRaw:'3.10', oddsDec:3.10, a:'2 shots', locked:false},
-    {q:'In what minute will the first goal be scored?', oddsRaw:'6.00', oddsDec:6.00, a:'31-45', locked:false},
-    {q:'Which listed player will receive a yellow card?', oddsRaw:'3.60', oddsDec:3.60, a:'Player X', locked:false},
-    {q:'How many tackles will Player make?', oddsRaw:'4.50', oddsDec:4.50, a:'2-3', locked:false},
-    {q:'How many passes will Player complete?', oddsRaw:'5.00', oddsDec:5.00, a:'50-59', locked:false},
-    {q:'Which team will have more corners?', oddsRaw:'1.90', oddsDec:1.90, a:'Team B', locked:false}
-  ];
-  qcount.value = rows.length;
-  renderRows();
+  status('Exported JSON downloaded.');
 });
-document.getElementById('export').addEventListener('click', exportJSON);
-document.getElementById('exportCsv').addEventListener('click', exportCSV);
-document.getElementById('import').addEventListener('click', ()=> fileInput.click());
-fileInput.addEventListener('change', (e)=> {
-  const f = e.target.files?.[0];
-  if (f) importJSONFromFile(f);
-  e.target.value = '';
-});
-document.getElementById('share').addEventListener('click', copyShareLink);
 
-applyAllOddsBtn.addEventListener('click', applyAllOdds);
-allOdds.addEventListener('keydown', (e)=>{ if (e.key === 'Enter') applyAllOdds(); });
-cloneTopAllBtn.addEventListener('click', copyTopRowToAll);
-
-syncOddsEl.addEventListener('change', ()=> { syncOddsFlag = !!syncOddsEl.checked; saveStateDebounced(); });
-
+document.getElementById('applyUniform').addEventListener('click', applyUniformOdds);
+document.getElementById('cloneTop').addEventListener('click', copyTopRowToAll);
 mult.addEventListener('input', render);
 participants.addEventListener('input', render);
-qcount.addEventListener('input', ()=>{
-  const n = clamp(Number(qcount.value)||1, 1, 50);
-  qcount.value = String(n);
-  ensureCount(n);
-});
+qcount.addEventListener('input', ()=> ensureCount(Math.max(1, Math.min(50, Number(qcount.value)||1))));
 
-/* ----------------------------- Bootstrap ---------------------------------- */
-(function bootstrap(){
-  try{
-    const hash = location.hash || '';
-    const m = hash.match(/state=([^&]+)/);
-    if (m) { setState(JSON.parse(decodeURIComponent(m[1]))); showStatus('Loaded from URL state.', 2000); return; }
-  }catch{}
-  try{
-    const raw = localStorage.getItem(LS_KEY);
-    if (raw){ setState(JSON.parse(raw)); showStatus('Loaded from autosave.', 1500); return; }
-  }catch{}
-  ensureCount(Number(document.getElementById('qcount').value));
+ensureCount(Number(qcount.value));
+render();
+</script>
+
   render();
 })();
 </script>
