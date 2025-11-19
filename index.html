@@ -92,7 +92,7 @@
 
       <div class="muted" style="margin-top:10px">Bulk odds</div>
       <div class="row" style="margin-top:6px">
-        <input id="uniformOdds" type="text" inputmode="decimal" placeholder="Uniform odds e.g. 2.50" style="max-width:160px">
+        <input id="uniformOdds" type="text" inputmode="decimal" placeholder="Uniform odds e.g. 2.0" style="max-width:160px">
         <button id="applyUniform" class="btn">Apply to all odds</button>
         <button id="cloneTop" class="btn" title="Make every row identical to the first row (question, answer, odds)">Copy top row → all</button>
       </div>
@@ -180,10 +180,10 @@ const uniformOdds = document.getElementById('uniformOdds');
 
 function status(msg, ms=1600){ statusEl.textContent = msg; if(ms){ setTimeout(()=>statusEl.textContent='', ms); } }
 
-function addRow(q='', odds=2.50, a='Optimal pick'){ rows.push({q, odds: Number(odds) || 2.50, a}); renderRows(); }
+function addRow(q='', odds=2.00, a='Optimal pick'){ rows.push({q, odds: Number(odds) || 2.00, a}); renderRows(); }
 function removeRow(idx){ rows.splice(idx,1); render(); }
 function ensureCount(n){
-  while(rows.length < n){ const tmpl = templateInput.value.trim(); addRow(tmpl || `Question ${rows.length+1}`, 2.50, 'Optimal pick'); }
+  while(rows.length < n){ const tmpl = templateInput.value.trim(); addRow(tmpl || `Question ${rows.length+1}`, 2.00, 'Optimal pick'); }
   while(rows.length > n){ rows.pop(); }
   renderRows();
 }
@@ -361,7 +361,7 @@ function copyTopRowToAll(){
 }
 
 /* Events */
-document.getElementById('addRow').addEventListener('click', ()=> addRow(templateInput.value || `Question ${rows.length+1}`, 2.50, 'Optimal pick'));
+document.getElementById('addRow').addEventListener('click', ()=> addRow(templateInput.value || `Question ${rows.length+1}`, 2.00, 'Optimal pick'));
 document.getElementById('clearRows').addEventListener('click', ()=> { rows=[]; renderRows(); });
 document.getElementById('example').addEventListener('click', ()=> {
   rows = [
