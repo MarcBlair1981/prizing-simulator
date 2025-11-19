@@ -60,13 +60,18 @@
   <div class="grid g2" style="margin-top:12px">
     <div class="card">
       <div class="muted">Participants</div>
-      <input id="participants" type="number" min="100" step="100" value="10000">
+      <input id="participants" type="number" min="100" step="100" value="1000">
       <div class="muted" style="margin-top:8px">Number of questions</div>
       <input id="qcount" type="number" min="1" max="50" step="1" value="8">
       <div class="muted" style="margin-top:8px">Question template</div>
       <input id="template" list="templates" type="text" placeholder="Type or choose (auto-fills when you add rows)">
       <datalist id="templates">
         <option>Which team will win the match?</option>
+        <option>Will both teams score?</option>
+        <option>Who will win the fight?</option>
+        <option>How many Touchdowns will be scored?</option>
+        <option>Will Erling Haaland score?</option>
+        <option>Will Lamine Yamal score or assist?</option>
         <option>How many corners will be taken?</option>
         <option>How many shots on target for [Player]?</option>
         <option>How many tackles will [Player] make?</option>
