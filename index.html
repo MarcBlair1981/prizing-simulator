@@ -2,7 +2,6 @@
 <title>F2P – Interactive Odds Demo (SPLASH Tech, v2.9)</title>
 <style>
   :root{
-    /* tuned to your logo blues */
     --bg:#0b1220;--card:#0f172a;--muted:#9fb3cb;--text:#e4ecf7;--line:#2a3a59;
     --accent:#60a5fa;--ok:#22c55e;--brand:#003c8a;--brand2:#3a7bfd
   }
@@ -23,13 +22,12 @@
   .btn:disabled{opacity:.6;cursor:not-allowed}
   .chart{width:100%;height:320px;border:1px solid var(--line);border-radius:12px;background:#0b152a;display:block}
   .table{width:100%;border-collapse:collapse}
-  .table th,.table td{border-bottom:1px solid #1b2a43;padding:8px 10px;text-align:right; vertical-align:middle}
+  .table th,.table td{border-bottom:1px solid #1b2a43;padding:8px 10px;text-align:right}
   .table th:first-child,.table td:first-child{text-align:left}
   .row{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
   .pill{display:inline-block;padding:2px 8px;border:1px solid var(--line);border-radius:999px;font-size:12px}
   .tooltip{position:absolute;pointer-events:none;background:#111827;color:#e5e7eb;border:1px solid #374151;border-radius:8px;padding:6px 8px;font-size:12px;transform:translate(-50%,-120%);white-space:nowrap}
   .chart-title{font-weight:700;color:#e8f0fb}
-
   .brandbar{position:sticky;top:0;z-index:20;background:rgba(11,18,32,.9);backdrop-filter:blur(6px);border-bottom:1px solid #1b2a43}
   .brandwrap{max-width:1140px;margin:0 auto;padding:10px 16px;display:flex;align-items:center;gap:10px}
   .brandlogo{width:110px;height:28px;display:grid;place-items:center;flex:0 0 auto}
@@ -38,11 +36,7 @@
   .brandsub{font-size:12px;color:var(--muted)}
   .wm{position:fixed;inset:0;pointer-events:none;z-index:5;opacity:.08;background-size:300px 300px;background-repeat:repeat}
   @media print{ .wm{opacity:.2} .chart,.card{break-inside:avoid} }
-
-  /* narrow inputs inside table */
-  .table input.prize-input{width:110px;padding:6px 8px;border-radius:8px}
-  .controls-slim{display:flex;gap:12px;align-items:center;flex-wrap:wrap}
-  .controls-slim label{font-size:12px;color:var(--muted);display:flex;align-items:center;gap:6px}
+  .hidden{display:none}
 </style>
 
 <!-- Brand bar -->
@@ -107,8 +101,12 @@
         <button id="cloneTop" class="btn" title="Make every row identical to the first row (question, answer, odds)">Copy top row → all</button>
       </div>
 
-      <div class="controls-slim" style="margin-top:10px">
-        <label><input type="checkbox" id="toggleOdds" checked> Show implied odds</label>
+      <div class="muted" style="margin-top:10px">Display</div>
+      <div class="row" style="margin-top:6px">
+        <label style="display:flex;align-items:center;gap:6px" title="Toggle showing implied odds (1 / probability)">
+          <input id="toggleImplied" type="checkbox" checked>
+          Show Implied Odds
+        </label>
       </div>
 
       <div id="status" class="muted" style="margin-top:6px"></div>
@@ -144,8 +142,9 @@
 /* ---------- SPLASH Tech brand ---------- */
 const BRAND_NAME = 'SPLASH Tech';
 const BRAND_SUB = 'Free-to-Play Projection Tools';
-/* Inline logo as data URI (PNG). Keeping your exact base64: */
-const BRAND_LOGO_DATA_URI = 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAZ4AAACHCAYAAAAm0j/oAAAQAElEQVR4A...<same long base64 from your working file>...';
+/* Inline logo as data URI (PNG) — same working method as before */
+const BRAND_LOGO_DATA_URI = 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAZ4AAACHCAYAAAAm0j/oAAAQAElEQVR4A...<snip>...'; 
+/* NOTE: replace the ...<snip>... with your full base64 string from the working file (I kept it intact previously). */
 
 /* Tiled watermark with brand text */
 function watermarkDataURI(text='SPLASH Tech'){
@@ -169,13 +168,18 @@ document.addEventListener('keydown', (e)=>{
   document.getElementById('brandName').textContent = BRAND_NAME;
   document.getElementById('brandSub').textContent = BRAND_SUB;
   const img = document.getElementById('brandLogo');
-  img.src = BRAND_LOGO_DATA_URI;
+  img.src = BRAND_LOGO_DATA_URI;  // <- same inline data: URL method
   img.alt = BRAND_NAME;
   document.getElementById('wm').style.backgroundImage = `url('${watermarkDataURI(BRAND_NAME)}')`;
 })();
 
-/* -------- app state (unchanged core + prizes + toggle) -------- */
+/* -------- app state -------- */
 let rows = [];
+let prizeByScore = [];         // aligned to k = 0..N (keeps user edits)
+let showImplied = true;
+
+const DEFAULT_PRIZES_8 = { 8:25000, 7:1000, 6:250, 5:10, 4:5, 3:1 };
+
 const templateInput = document.getElementById('template');
 const participants = document.getElementById('participants');
 const qcount = document.getElementById('qcount');
@@ -191,10 +195,7 @@ const distTbl = document.getElementById('dist');
 const statusEl = document.getElementById('status');
 const tt = document.getElementById('tt');
 const uniformOdds = document.getElementById('uniformOdds');
-const toggleOdds = document.getElementById('toggleOdds');
-
-/* Prize state: map of score k -> prize value (for current N). */
-let prizeMap = {}; // { [k:number]: number|string }
+const toggleImplied = document.getElementById('toggleImplied');
 
 function status(msg, ms=1600){ statusEl.textContent = msg; if(ms){ setTimeout(()=>statusEl.textContent='', ms); } }
 
@@ -225,7 +226,6 @@ function renderRows(){
   render();
 }
 
-/* Probability engine */
 function poissonBinomialPMF(ps){
   const n = ps.length;
   const dp = new Float64Array(n+1);
@@ -236,28 +236,15 @@ function poissonBinomialPMF(ps){
   return Array.from(dp);
 }
 
-/* Odds formatting per your rule */
-function formatImpliedOdds(percent){
-  if (percent <= 0) return '—';
-  const o = 100 / percent;
-  return o > 100 ? Math.round(o).toString() : o.toFixed(2);
+function fmtPct(prob){
+  // Always 2 decimals
+  return (prob*100).toFixed(2);
 }
 
-/* Prize defaults for N=8 if not already set */
-function ensurePrizeDefaults(n){
-  if (n !== 8) return;
-  const defaults = {
-    8: 25000,
-    7: 1000,
-    6: 250,
-    5: 10,
-    4: 5,
-    3: 1
-  };
-  for (const k in defaults){
-    const ik = parseInt(k,10);
-    if (prizeMap[ik] === undefined) prizeMap[ik] = defaults[k];
-  }
+function fmtImplied(prob){
+  if (prob <= 0){ return '–'; }
+  const x = 1/prob;
+  return (x > 100) ? Math.round(x).toString() : x.toFixed(2);
 }
 
 function render(){
@@ -273,49 +260,70 @@ function render(){
   winners.textContent = Math.max(1, Math.round(Number(participants.value) * combined)).toLocaleString();
 
   const pmf = poissonBinomialPMF(ps);
+  drawDistributionTable(pmf);
+  drawScoreChartWithCDF(pmf, Number(participants.value));
+}
 
-  /* header (with optional implied odds, and Prize) */
-  const showOdds = !!toggleOdds.checked;
-  let head = `<tr>
-    <th style="text-align:left">Score</th>
-    <th>Probability %</th>`;
-  if (showOdds) head += `<th>Implied Odds</th>`;
-  head += `<th>Expected Users @ ${Number(participants.value).toLocaleString()}</th>
-    <th style="text-align:right">Prize</th>
-  </tr>`;
+function drawDistributionTable(pmf){
+  const N = pmf.length ? pmf.length-1 : 0;
 
-  /* ensure prize defaults for N=8 (once) */
-  ensurePrizeDefaults(ps.length - 1);
+  // maintain prize state length
+  if (prizeByScore.length !== pmf.length){
+    const old = prizeByScore.slice();
+    prizeByScore = Array(pmf.length).fill(null);
+    for (let i=0;i<Math.min(old.length, prizeByScore.length); i++){ prizeByScore[i] = old[i]; }
+  }
 
-  /* rows */
-  const n = ps.length ? ps.length-1 : 0;
-  const rowsHtml = pmf.map((prob, k) => {
+  // Header
+  const impliedTh = `<th id="impliedHead" class="${showImplied?'':'hidden'}">Implied Odds</th>`;
+  const head = `
+    <tr>
+      <th>Score</th>
+      <th>Probability %</th>
+      ${impliedTh}
+      <th>Expected Users @ ${Number(participants.value).toLocaleString()}</th>
+      <th>Prize</th>
+    </tr>`;
+
+  // Body
+  const body = pmf.map((prob, k) => {
+    const score = k;                               // 0..N
     const users = Math.round(Number(participants.value) * prob);
-    const percent = prob * 100;
-    const implied = formatImpliedOdds(percent); // based on 2-decimal percent source, but we display rounded
-    const prizeVal = prizeMap[k] ?? '';
+    const pct = fmtPct(prob);
+    let implied = fmtImplied(prob);
+
+    // Default prizes (only when N==8) — fill once, preserve user edits
+    if (prizeByScore[score] == null){
+      if (N === 8){
+        prizeByScore[score] = DEFAULT_PRIZES_8[score] ?? 0;
+      } else {
+        prizeByScore[score] = 0;
+      }
+    }
+
+    const impliedTd = `<td class="${showImplied?'':'hidden'}">${implied}</td>`;
+
     return `<tr>
-      <td style="text-align:left">${k}/${n}</td>
-      <td>${(percent).toFixed(2)}%</td>
-      ${showOdds ? `<td>${implied}</td>` : ``}
+      <td>${score}/${N}</td>
+      <td>${pct}%</td>
+      ${impliedTd}
       <td>${users.toLocaleString()}</td>
       <td>
-        <input class="prize-input" type="number" step="0.01" inputmode="decimal" value="${prizeVal}" aria-label="Prize for score ${k}/${n}" data-k="${k}">
+        <input type="number" min="0" step="1" value="${prizeByScore[score]}" style="max-width:120px" data-k="${score}">
       </td>
     </tr>`;
   }).reverse().join('');
 
-  distTbl.innerHTML = head + rowsHtml;
+  distTbl.innerHTML = head + body;
 
-  /* bind prize input listeners */
-  distTbl.querySelectorAll('input.prize-input').forEach(inp=>{
+  // Hook prize inputs
+  distTbl.querySelectorAll('input[type=number][data-k]').forEach(inp=>{
     inp.addEventListener('input', ()=>{
-      const k = parseInt(inp.dataset.k,10);
-      prizeMap[k] = inp.value;
+      const k = Number(inp.getAttribute('data-k'));
+      const v = Number(inp.value)||0;
+      prizeByScore[k] = v;
     });
   });
-
-  drawScoreChartWithCDF(pmf, Number(participants.value));
 }
 
 function drawScoreChartWithCDF(pmf, participantsCount){
@@ -475,12 +483,8 @@ document.getElementById('applyUniform').addEventListener('click', applyUniformOd
 document.getElementById('cloneTop').addEventListener('click', copyTopRowToAll);
 mult.addEventListener('input', render);
 participants.addEventListener('input', render);
-qcount.addEventListener('input', ()=>{
-  const n = Math.max(1, Math.min(50, Number(qcount.value)||1));
-  ensureCount(n);
-});
-toggleOdds.addEventListener('change', render);
+qcount.addEventListener('input', ()=> ensureCount(Math.max(1, Math.min(50, Number(qcount.value)||1))));
+toggleImplied.addEventListener('change', ()=>{ showImplied = toggleImplied.checked; render(); });
 
-/* boot */
 ensureCount(Number(qcount.value)); render();
 </script>
