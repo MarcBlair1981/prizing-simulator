@@ -62,7 +62,7 @@
       <div class="muted">Participants</div>
       <input id="participants" type="number" min="100" step="100" value="1000">
       <div class="muted" style="margin-top:8px">Number of questions</div>
-      <input id="qcount" type="number" min="1" max="50" step="1" value="6">
+      <input id="qcount" type="number" min="1" max="50" step="1" value="8">
       <div class="muted" style="margin-top:8px">Question template</div>
       <input id="template" list="templates" type="text" placeholder="Type or choose (auto-fills when you add rows)">
       <datalist id="templates">
@@ -584,30 +584,18 @@ function applyPreset(){
 
 /* First-load initializer (non-destructive for returning users) */
 function firstLoadMaybeApplyDefault(){
+  const INIT_FLAG = '__f2p_init__';
+  if (localStorage.getItem(INIT_FLAG)) return; // already initialized before
+
   const defaultPreset = getPresetById('pick6_850');
-  if (!defaultPreset) return;
-
-  // Set the desired question count first so ensureCount() uses it
-  qcount.value = String(defaultPreset.questions);
-
-  // Build the rows now (in case someone calls render before the final boot sequence)
-  ensureCount(defaultPreset.questions);
-
-  // Apply preset odds and labels
-  rows.forEach((r, i) => {
-    r.odds = defaultPreset.oddsPerQuestion;
-    r.q = r.q || `Question ${i+1}`;
-    r.a = r.a || 'Optimal pick';
-  });
-
-  // Apply prize ladder exactly (size N+1)
-  prizeByScore = Array(defaultPreset.questions + 1).fill(0);
-  for (let k = 0; k < prizeByScore.length && k < defaultPreset.prizes.length; k++) {
-    prizeByScore[k] = defaultPreset.prizes[k] || 0;
+  if (defaultPreset){
+    ensureCount(defaultPreset.questions);
+    rows.forEach(r=>{ r.odds = defaultPreset.oddsPerQuestion; r.q = r.q || 'Question'; r.a = r.a || 'Optimal pick'; });
+    qcount.value = defaultPreset.questions;
+    prizeByScore = Array(defaultPreset.questions+1).fill(0);
+    for (let k=0;k<prizeByScore.length && k<defaultPreset.prizes.length;k++){ prizeByScore[k] = defaultPreset.prizes[k]||0; }
+    currentPresetId = defaultPreset.id;
   }
-
-  currentPresetId = defaultPreset.id;
-}
   localStorage.setItem(INIT_FLAG,'1'); // only once
 }
 
@@ -659,7 +647,7 @@ applyPresetBtn.addEventListener('click', applyPreset);
 
 /* Boot */
 initPresetSelect();
-firstLoadMaybeApplyDefault();          // ← move this up
-ensureCount(Number(qcount.value));     // ← build rows using (possibly updated) qcount
-renderRows();
+ensureCount(Number(qcount.value));
+firstLoadMaybeApplyDefault();  // applies Pick6 on first ever load only
+renderRows();                  // will render everything
 </script>
