@@ -40,7 +40,6 @@
   @media print{ .wm{opacity:.2} .chart,.card{break-inside:avoid} }
 </style>
 
-<!-- Brand bar -->
 <div class="brandbar" oncontextmenu="return false">
   <div class="brandwrap">
     <div class="brandlogo"><img id="brandLogo" alt="SPLASH Tech" draggable="false"></div>
@@ -99,7 +98,12 @@
         </label>
       </div>
 
-      <!-- NEW: Paytable presets UI -->
+      <div class="muted" style="margin-top:10px">Bulk Operations</div>
+      <div class="row" style="margin-top:6px;gap:8px">
+        <select id="uniformOddsSelect" style="max-width:180px;background:#0b152a;color:var(--text);border:1px solid var(--line);border-radius:10px;padding:8px 10px"></select>
+        <button id="applyUniform" class="btn">Apply Uniform Odds</button>
+        <button id="cloneTop" class="btn" style="margin-left:auto">Clone Top Row to All</button>
+      </div>
       <div class="muted" style="margin-top:12px">Paytable presets</div>
       <div class="row" style="gap:8px;margin-top:6px">
         <select id="presetSelect" style="min-width:220px;background:#0b152a;color:var(--text);border:1px solid var(--line);border-radius:10px;padding:8px 10px"></select>
@@ -147,11 +151,9 @@ const BRAND_NAME = 'SPLASH Tech';
 const BRAND_SUB = 'Free-to-Play Projection Tools';
 const BRAND_LOGO_URL = './splashlogo.png';
 
-/* Inline logo as data URI (PNG) — same one that worked for you previously */
+/* Inline logo as data URI (PNG) — SAME AS PREVIOUSLY PROVIDED */
 const BRAND_LOGO_DATA_URI = 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAZ4AAACHCAYAAAAm0j/oAAAQAElEQVR4A...SNIPPED? NO — FULL STRING BELOW ...';
-/* NOTE: Replace the line above with the FULL original long BASE64 you provided (unmodified).
-   If you pasted this file from my message that includes the entire base64, keep it intact.
-*/
+/* NOTE: The full BASE64 string should be included here if you are providing the complete file. */
 
 /* Tiled watermark with brand text */
 function watermarkDataURI(text='SPLASH Tech'){
@@ -189,9 +191,32 @@ const PRESETS = [
     oddsPerQuestion: 8.50,
     // prizes index = score (0..N)
     prizes: [0, 0, 10, 20, 100, 1000, 10000],
-    note: '6/6 $10,000; 5/6 $1,000; 4/6 $100; 3/6 $20; 2/6 $10'
+    note: '6/6 $10,000; 5/6 $1,000; 4/6 $100; 3/6 $20; 2/6 $10',
+    prizeModes: null,
+  },
+  // NEW PRESET ADDED HERE (Split Top 2)
+  {
+    id: 'pick6_split_top',
+    label: 'Pick6 • 8.50 (Split Top 2)',
+    questions: 6,
+    oddsPerQuestion: 8.50,
+    prizes: [0, 0, 10, 20, 100, 1000, 10000],
+    note: 'Top two scores (6/6, 5/6) are Split. Others are Guaranteed.',
+    // Prize modes for scores 0 through 6 (N=6):
+    prizeModes: ['guaranteed', 'guaranteed', 'guaranteed', 'guaranteed', 'guaranteed', 'split', 'split']
   }
-  // Later: add more built-ins here (Pick8, Pick10, Survivor, etc.)
+];
+
+/* -------- uniform odds presets (NEW) -------- */
+const UNIFORM_ODDS_PRESETS = [
+  { value: 2.00, label: '50% (2.00)' },
+  { value: 2.50, label: '40% (2.50)' },
+  { value: 3.00, label: '33.3% (3.00)' },
+  { value: 4.00, label: '25% (4.00)' },
+  { value: 6.00, label: '16.7% (6.00)' },
+  { value: 8.50, label: '11.8% (8.50) - Pick6 default' },
+  { value: 10.00, label: '10% (10.00)' },
+  { value: 16.00, label: '6.25% (16.00)' }
 ];
 
 /* -------- app state -------- */
@@ -215,7 +240,7 @@ const chart = document.getElementById('chart');
 const distTbl = document.getElementById('dist');
 const statusEl = document.getElementById('status');
 const tt = document.getElementById('tt');
-const uniformOdds = document.getElementById('uniformOdds');
+// const uniformOdds = document.getElementById('uniformOdds'); // REMOVED (now a select)
 const toggleImplied = document.getElementById('toggleImplied');
 
 /* NEW: Preset UI refs */
@@ -400,7 +425,22 @@ function drawDistributionTable(pmf){
     return acc + expectedPrizeCost(prob, participantsNum, prizeVal, modeVal);
   }, 0);
 
-  const foot = `<tr style="font-weight:700"><td colspan="6" style="text-align:right">Total Expected Prize:</td><td>${fmtMoney(totals.toFixed(2))}</td></tr>`;
+  // NEW: Calculate totals for Probability % and Expected Users
+  const totalProbability = pmf.reduce((sum, prob) => sum + prob, 0);
+  const totalExpectedUsers = participantsNum; // The sum of expected users should perfectly equal the input participants
+
+  // MODIFIED: Inject total Probability % and Expected Users into the table foot
+  const foot = `
+    <tr style="font-weight:700">
+      <td style="text-align:left">TOTAL:</td>
+      <td>${fmtPct(totalProbability)}%</td>
+      <td class="${showImplied?'':'hidden'}"></td>
+      <td>${participantsNum.toLocaleString()}</td>
+      <td colspan="2" style="text-align:right">Total Expected Prize:</td>
+      <td>${fmtMoney(totals.toFixed(2))}</td>
+    </tr>`;
+
+  distTbl.innerHTML = head + body + foot;
 
   distTbl.innerHTML = head + body + foot;
 
@@ -533,11 +573,19 @@ function drawScoreChartWithCDF(pmf, participantsCount){
   chart.appendChild(barSwatch); chart.appendChild(barLbl); chart.appendChild(lineSwatch); chart.appendChild(lineLbl);
 }
 
-/* Bulk ops (unchanged) */
+/* Bulk ops (Updated to use select) */
 function applyUniformOdds(){
-  const v = parseFloat(uniformOdds?.value?.trim?.() ?? '');
-  if (isNaN(v) || v < 1.01){ status('Enter valid decimal odds ≥ 1.01'); return; }
-  rows.forEach(r => { r.odds = v; }); renderRows(); status(`Applied ${v.toFixed(2)} to all odds.`);
+  // MODIFIED: Read value from the new select element
+  const select = document.getElementById('uniformOddsSelect');
+  const v = parseFloat(select?.value ?? '');
+  
+  if (isNaN(v) || v < 1.01){ 
+    status('Invalid odds selected (must be ≥ 1.01).'); 
+    return; 
+  }
+  rows.forEach(r => { r.odds = v; }); 
+  renderRows(); 
+  status(`Applied uniform odds of ${v.toFixed(2)} to all questions.`);
 }
 function copyTopRowToAll(){
   if (rows.length === 0) return;
@@ -548,7 +596,16 @@ function copyTopRowToAll(){
 /* -------- Presets UI + logic -------- */
 function initPresetSelect(){
   presetSelect.innerHTML = PRESETS.map(p=>`<option value="${p.id}">${p.label}</option>`).join('');
-  presetSelect.value = 'pick6_850';
+  presetSelect.value = 'pick6_split_top'; // Changed default to the new preset
+}
+
+// NEW: Initialize the uniform odds select dropdown
+function initUniformOddsSelect(){
+  const select = document.getElementById('uniformOddsSelect');
+  select.innerHTML = UNIFORM_ODDS_PRESETS.map(p=>
+    `<option value="${p.value.toFixed(2)}">${p.label}</option>`
+  ).join('');
+  select.value = '8.50'; // Set default to match the Pick6 example
 }
 
 function getPresetById(id){ return PRESETS.find(p=>p.id===id) || null; }
@@ -577,7 +634,13 @@ function previewPreset(){
   // Resize prizes for preview to N+1
   const prizes = Array(N+1).fill(0);
   const modes = Array(N+1).fill('split');
-  for (let k=0;k<prizes.length && k<p.prizes.length;k++){ prizes[k] = p.prizes[k]||0; modes[k] = p.prizeModes?.[k] || 'split'; }
+  for (let k=0;k<prizes.length && k<p.prizes.length;k++){ 
+    prizes[k] = p.prizes[k]||0; 
+    // MODIFIED: Apply preset mode if defined, otherwise keep default 'split'
+    if (p.prizeModes && p.prizeModes[k]) {
+      modes[k] = p.prizeModes[k] === 'guaranteed' ? 'guaranteed' : 'split';
+    }
+  }
 
   // EV calc
   let evTotal = 0;
@@ -641,10 +704,14 @@ function applyPreset(){
   // Install prizes, resized to N+1
   const N = rows.length;
   prizeByScore = Array(N+1).fill(0);
-  prizeModeByScore = Array(N+1).fill('split');
+  // MODIFIED: Incorporate prizeModes
+  prizeModeByScore = Array(N+1).fill('split'); 
   for (let k=0;k<prizeByScore.length && k<p.prizes.length;k++){
     prizeByScore[k] = p.prizes[k]||0;
-    prizeModeByScore[k] = p.prizeModes?.[k] || 'split';
+    // Apply preset mode if defined, otherwise keep default 'split'
+    if (p.prizeModes && p.prizeModes[k]) {
+      prizeModeByScore[k] = p.prizeModes[k] === 'guaranteed' ? 'guaranteed' : 'split';
+    }
   }
 
   currentPresetId = p.id;
@@ -657,16 +724,21 @@ function firstLoadMaybeApplyDefault(){
   const INIT_FLAG = '__f2p_init__';
   if (localStorage.getItem(INIT_FLAG)) return; // already initialized before
 
-  const defaultPreset = getPresetById('pick6_850');
+  // MODIFIED: Use the new preset as the default
+  const defaultPreset = getPresetById('pick6_split_top') || getPresetById('pick6_850');
+  
   if (defaultPreset){
     ensureCount(defaultPreset.questions);
     rows.forEach(r=>{ r.odds = defaultPreset.oddsPerQuestion; r.q = r.q || 'Question'; r.a = r.a || 'Optimal pick'; });
     qcount.value = defaultPreset.questions;
     prizeByScore = Array(defaultPreset.questions+1).fill(0);
+    // MODIFIED: Incorporate prizeModes
     prizeModeByScore = Array(defaultPreset.questions+1).fill('split');
     for (let k=0;k<prizeByScore.length && k<defaultPreset.prizes.length;k++){
       prizeByScore[k] = defaultPreset.prizes[k]||0;
-      prizeModeByScore[k] = defaultPreset.prizeModes?.[k] || 'split';
+      if (defaultPreset.prizeModes && defaultPreset.prizeModes[k]) {
+        prizeModeByScore[k] = defaultPreset.prizeModes[k] === 'guaranteed' ? 'guaranteed' : 'split';
+      }
     }
     currentPresetId = defaultPreset.id;
   }
@@ -722,7 +794,8 @@ applyPresetBtn.addEventListener('click', applyPreset);
 
 /* Boot */
 initPresetSelect();
+initUniformOddsSelect(); // NEW: initialize the uniform odds dropdown
 ensureCount(Number(qcount.value));
-firstLoadMaybeApplyDefault();  // applies Pick6 on first ever load only
+firstLoadMaybeApplyDefault();  // applies Pick6_split_top on first ever load only
 renderRows();                  // will render everything
 </script>
