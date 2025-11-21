@@ -34,9 +34,9 @@
   .brandwrap{
     max-width:1140px;
     margin:0 auto;
-    padding:10px 16px;
+    padding: 2px 16px; /* MODIFIED: Reduced top/bottom padding from 10px to 2px */
     display:flex;
-    align-items:flex-start; /* MODIFIED: Aligns content (logo and text) to the top */
+    align-items:flex-start; /* Keeps logo at the top edge */
     gap:10px
   }
   .brandlogo{
@@ -56,8 +56,7 @@
 <div class="brandbar" oncontextmenu="return false">
   <div class="brandwrap">
     <div class="brandlogo"><img id="brandLogo" alt="SPLASH Tech" draggable="false"></div>
-    <div>
-      <div class="brandname" id="brandName">SPLASH Tech</div>
+    <div style="margin-top: -3px;"> <div class="brandname" id="brandName">SPLASH Tech</div>
       <div class="brandsub" id="brandSub">Free-to-Play Projection Tools</div>
     </div>
     <div style="margin-left:auto" class="brandsub">v3.0</div>
