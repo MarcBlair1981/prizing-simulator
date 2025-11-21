@@ -62,7 +62,7 @@
       <div class="muted">Participants</div>
       <input id="participants" type="number" min="100" step="100" value="1000">
       <div class="muted" style="margin-top:8px">Number of questions</div>
-      <input id="qcount" type="number" min="1" max="50" step="1" value="8">
+      <input id="qcount" type="number" min="1" max="50" step="1" value="6">
       <div class="muted" style="margin-top:8px">Question template</div>
       <input id="template" list="templates" type="text" placeholder="Type or choose (auto-fills when you add rows)">
       <datalist id="templates">
@@ -197,6 +197,7 @@ const PRESETS = [
 /* -------- app state -------- */
 let rows = [];
 let prizeByScore = [];          // prize values indexed by score k (0..N)
+let prizeModeByScore = [];      // payout mode per score ('split' | 'guaranteed')
 let showImplied = true;
 let currentPresetId = null;     // best-effort tracking
 
@@ -230,7 +231,11 @@ function status(msg, ms=1600){ statusEl.textContent = msg; if(ms){ setTimeout(()
 function addRow(q='', odds=2.00, a='Optimal pick'){ rows.push({q, odds: Number(odds) || 2.00, a}); renderRows(); }
 function removeRow(idx){ rows.splice(idx,1); render(); }
 function ensureCount(n){
-  while(rows.length < n){ const tmpl = templateInput.value.trim(); addRow(tmpl || `Question ${rows.length+1}`, 2.00, 'Optimal pick'); }
+  while(rows.length < n){
+    const tmpl = templateInput.value.trim();
+    const base = tmpl || 'What will be the Correct Score?';
+    addRow(base, 2.00, 'Optimal pick');
+  }
   while(rows.length > n){ rows.pop(); }
   renderRows();
 }
@@ -274,11 +279,25 @@ function fmtImplied(prob){
   return odds.toFixed(2);
 }
 function fmtMoney(v){ return '$' + Number(v||0).toLocaleString(); }
+function fmtUsers(raw){
+  if (!isFinite(raw)) return '—';
+  return raw < 1 ? raw.toFixed(2) : Math.round(raw).toLocaleString();
+}
+function expectedPrizeCost(prob, participants, prize, mode){
+  if (!isFinite(prize) || prize <= 0) return 0;
+  if (!isFinite(prob) || prob <= 0 || !participants) return 0;
+
+  // For both payout modes, the total prize is awarded only if at least one user hits the score.
+  // If multiple users hit, they share the same pot. Expected cost = prize × P(at least one winner).
+  const probAtLeastOne = 1 - Math.pow(1 - prob, participants);
+  return prize * probAtLeastOne;
+}
 
 /* Core render */
 function render(){
   multDisp.textContent = '×' + Number(mult.value).toFixed(2);
-  pdisp.textContent = Number(participants.value).toLocaleString();
+  const participantsNum = Number(participants.value) || 0;
+  pdisp.textContent = participantsNum.toLocaleString();
   qstat.textContent = rows.length.toString();
 
   const m = Number(mult.value);
@@ -286,22 +305,27 @@ function render(){
 
   let combined = 1.0; for (const p of ps) combined *= p;
   comb.textContent = (combined*100).toFixed(6) + '%';
-  winners.textContent = Math.max(1, Math.round(Number(participants.value) * combined)).toLocaleString();
+  const expectedPerfectUsers = participantsNum * combined;
+  winners.textContent = fmtUsers(expectedPerfectUsers);
 
   const pmf = poissonBinomialPMF(ps);
   drawDistributionTable(pmf);
-  drawScoreChartWithCDF(pmf, Number(participants.value));
+  drawScoreChartWithCDF(pmf, participantsNum);
 }
 
 /* Dist table + prizes */
 function drawDistributionTable(pmf){
   const N = pmf.length ? pmf.length-1 : 0;
+  const participantsNum = Number(participants.value);
 
   // Keep prize array length in sync with PMF length, preserving edits
   if (prizeByScore.length !== pmf.length){
     const old = prizeByScore.slice();
+    const oldModes = prizeModeByScore.slice();
     prizeByScore = Array(pmf.length).fill(null);
+    prizeModeByScore = Array(pmf.length).fill('split');
     for (let i=0;i<Math.min(old.length, prizeByScore.length); i++){ prizeByScore[i] = old[i]; }
+    for (let i=0;i<Math.min(oldModes.length, prizeModeByScore.length); i++){ prizeModeByScore[i] = oldModes[i] || 'split'; }
   }
 
   // On very first load only, default prizes if none are set and N==8 (legacy)
@@ -313,11 +337,13 @@ function drawDistributionTable(pmf){
     prizeByScore[4] = 5;
     prizeByScore[3] = 1;
     for (let k=0;k<=8;k++) if (prizeByScore[k] == null) prizeByScore[k] = 0;
+    prizeModeByScore = Array(pmf.length).fill('split');
   }
 
   // Fill remaining nulls with 0
   for (let k=0;k<prizeByScore.length;k++){
     if (prizeByScore[k] == null) prizeByScore[k] = 0;
+    if (!prizeModeByScore[k]) prizeModeByScore[k] = 'split';
   }
 
   const impliedTh = `<th id="impliedHead" class="${showImplied?'':'hidden'}">Implied Odds</th>`;
@@ -326,27 +352,48 @@ function drawDistributionTable(pmf){
       <th>Score</th>
       <th>Probability %</th>
       ${impliedTh}
-      <th>Expected Users @ ${Number(participants.value).toLocaleString()}</th>
+      <th>Expected Users @ ${participantsNum.toLocaleString()}</th>
       <th>Prize</th>
+      <th>Payout Mode</th>
+      <th>Expected Prize</th>
     </tr>`;
 
   const body = pmf.map((prob, k) => {
-    const users = Math.round(Number(participants.value) * prob);
+    const rawUsers = participantsNum * prob;
+    const usersDisplay = fmtUsers(rawUsers);
     const pct = fmtPct(prob);
     const implied = fmtImplied(prob);
     const impliedTd = `<td class="${showImplied?'':'hidden'}">${implied}</td>`;
     const prizeVal = prizeByScore[k] ?? 0;
+    const modeVal = prizeModeByScore[k] || 'split';
+    const expectedPrize = expectedPrizeCost(prob, participantsNum, prizeVal, modeVal);
 
     return `<tr>
       <td>${k}/${N}</td>
       <td>${pct}%</td>
       ${impliedTd}
-      <td>${users.toLocaleString()}</td>
+      <td>${usersDisplay}</td>
       <td><input type="number" min="0" step="1" value="${prizeVal}" style="max-width:120px" data-k="${k}"></td>
+      <td>
+        <select data-mode-k="${k}" style="min-width:120px;background:#0b152a;color:var(--text);border:1px solid var(--line);border-radius:10px;padding:6px 8px">
+          <option value="split" ${modeVal==='split'?'selected':''}>Split</option>
+          <option value="guaranteed" ${modeVal==='guaranteed'?'selected':''}>Guaranteed</option>
+        </select>
+      </td>
+      <td>${fmtMoney(expectedPrize.toFixed(2))}</td>
     </tr>`;
   }).reverse().join('');
 
-  distTbl.innerHTML = head + body;
+  // Totals row for expected prizes
+  const totals = pmf.reduce((acc, prob, idx)=>{
+    const prizeVal = prizeByScore[idx] ?? 0;
+    const modeVal = prizeModeByScore[idx] || 'split';
+    return acc + expectedPrizeCost(prob, participantsNum, prizeVal, modeVal);
+  }, 0);
+
+  const foot = `<tr style="font-weight:700"><td colspan="6" style="text-align:right">Total Expected Prize:</td><td>${fmtMoney(totals.toFixed(2))}</td></tr>`;
+
+  distTbl.innerHTML = head + body + foot;
 
   // Save prize edits
   distTbl.querySelectorAll('input[type=number][data-k]').forEach(inp=>{
@@ -355,6 +402,15 @@ function drawDistributionTable(pmf){
       prizeByScore[k] = Number(inp.value)||0;
       // Preset tracking becomes unknown after manual edit
       currentPresetId = null;
+    });
+  });
+
+  distTbl.querySelectorAll('select[data-mode-k]').forEach(sel=>{
+    sel.addEventListener('change', ()=>{
+      const k = Number(sel.getAttribute('data-mode-k'));
+      prizeModeByScore[k] = sel.value === 'guaranteed' ? 'guaranteed' : 'split';
+      currentPresetId = null;
+      render();
     });
   });
 }
@@ -401,9 +457,9 @@ function drawScoreChartWithCDF(pmf, participantsCount){
   const step = Math.max(1, Math.ceil((n+1) / 12));
   const showTip = (k,e)=>{
     const r = chart.getBoundingClientRect();
-    const users = Math.round(participantsCount * (pmf[k]));
+    const users = fmtUsers(participantsCount * (pmf[k]));
     tt.style.display='block'; tt.style.left = (e.clientX - r.left) + 'px'; tt.style.top  = (e.clientY - r.top) + 'px';
-    tt.textContent = `Score ${k}/${n} • PMF ${vals[k].toFixed(4)}% • CDF ${cdf[k].toFixed(4)}% • ~${users.toLocaleString()} users`;
+    tt.textContent = `Score ${k}/${n} • PMF ${vals[k].toFixed(4)}% • CDF ${cdf[k].toFixed(4)}% • ~${users} users`;
   };
   const hideTip = ()=>{ tt.style.display='none'; };
 
@@ -511,12 +567,13 @@ function previewPreset(){
   const pmf = poissonBinomialPMF(ps);
   // Resize prizes for preview to N+1
   const prizes = Array(N+1).fill(0);
-  for (let k=0;k<prizes.length && k<p.prizes.length;k++){ prizes[k] = p.prizes[k]||0; }
+  const modes = Array(N+1).fill('split');
+  for (let k=0;k<prizes.length && k<p.prizes.length;k++){ prizes[k] = p.prizes[k]||0; modes[k] = p.prizeModes?.[k] || 'split'; }
 
   // EV calc
   let evTotal = 0;
   for (let k=0;k<pmf.length;k++){
-    evTotal += pmf[k]*participantsNum* (prizes[k]||0);
+    evTotal += expectedPrizeCost(pmf[k], participantsNum, prizes[k]||0, modes[k]);
   }
   const evPerUser = participantsNum>0 ? (evTotal/participantsNum) : 0;
 
@@ -532,7 +589,7 @@ function previewPreset(){
   if (p.prizes.length !== N+1) warn.push(`Preset prize vector (${p.prizes.length}) ≠ N+1 (${N+1}). Will resize.`);
 
   const ladderHTML = prizes
-    .map((v,k)=> `<tr><td>${k}/${N}</td><td style="text-align:right">${fmtMoney(v)}</td></tr>`)
+    .map((v,k)=> `<tr><td>${k}/${N}</td><td style="text-align:right">${fmtMoney(v)}</td><td style="text-align:right">${modes[k]==='guaranteed'?'Guaranteed':'Split'}</td></tr>`)
     .reverse().join('');
 
   presetPreview.innerHTML = `
@@ -545,7 +602,7 @@ function previewPreset(){
         <div>
           <div class="muted" style="margin-bottom:4px">Prize ladder</div>
           <table class="table" style="border:1px solid #1b2a43;border-radius:8px;overflow:hidden">
-            <thead><tr><th>Score</th><th>Prize</th></tr></thead>
+            <thead><tr><th>Score</th><th>Prize</th><th>Payout</th></tr></thead>
             <tbody>${ladderHTML}</tbody>
           </table>
         </div>
@@ -575,7 +632,11 @@ function applyPreset(){
   // Install prizes, resized to N+1
   const N = rows.length;
   prizeByScore = Array(N+1).fill(0);
-  for (let k=0;k<prizeByScore.length && k<p.prizes.length;k++){ prizeByScore[k] = p.prizes[k]||0; }
+  prizeModeByScore = Array(N+1).fill('split');
+  for (let k=0;k<prizeByScore.length && k<p.prizes.length;k++){
+    prizeByScore[k] = p.prizes[k]||0;
+    prizeModeByScore[k] = p.prizeModes?.[k] || 'split';
+  }
 
   currentPresetId = p.id;
   renderRows(); // also re-renders everything
@@ -593,7 +654,11 @@ function firstLoadMaybeApplyDefault(){
     rows.forEach(r=>{ r.odds = defaultPreset.oddsPerQuestion; r.q = r.q || 'Question'; r.a = r.a || 'Optimal pick'; });
     qcount.value = defaultPreset.questions;
     prizeByScore = Array(defaultPreset.questions+1).fill(0);
-    for (let k=0;k<prizeByScore.length && k<defaultPreset.prizes.length;k++){ prizeByScore[k] = defaultPreset.prizes[k]||0; }
+    prizeModeByScore = Array(defaultPreset.questions+1).fill('split');
+    for (let k=0;k<prizeByScore.length && k<defaultPreset.prizes.length;k++){
+      prizeByScore[k] = defaultPreset.prizes[k]||0;
+      prizeModeByScore[k] = defaultPreset.prizeModes?.[k] || 'split';
+    }
     currentPresetId = defaultPreset.id;
   }
   localStorage.setItem(INIT_FLAG,'1'); // only once
@@ -601,7 +666,7 @@ function firstLoadMaybeApplyDefault(){
 
 /* Events */
 document.getElementById('addRow').addEventListener('click', ()=> addRow(templateInput.value || `Question ${rows.length+1}`, 2.00, 'Optimal pick'));
-document.getElementById('clearRows').addEventListener('click', ()=> { rows=[]; prizeByScore=[]; currentPresetId=null; renderRows(); });
+document.getElementById('clearRows').addEventListener('click', ()=> { rows=[]; prizeByScore=[]; prizeModeByScore=[]; currentPresetId=null; renderRows(); });
 document.getElementById('example').addEventListener('click', ()=> {
   rows = [
     {q:'Which team will win the match?', odds:2.20, a:'Team A'},
@@ -613,7 +678,7 @@ document.getElementById('example').addEventListener('click', ()=> {
     {q:'How many passes will Player complete?', odds:5.00, a:'50-59'},
     {q:'Which team will have more corners?', odds:1.90, a:'Team B'}
   ];
-  qcount.value = rows.length; prizeByScore=[]; currentPresetId=null; renderRows();
+  qcount.value = rows.length; prizeByScore=[]; prizeModeByScore=[]; currentPresetId=null; renderRows();
 });
 document.getElementById('export').addEventListener('click', ()=>{
   const m = Number(mult.value);
@@ -622,6 +687,7 @@ document.getElementById('export').addEventListener('click', ()=>{
     participants: Number(participants.value),
     presetId: currentPresetId || null,
     prizes: prizeByScore.slice(), // include prize ladder in export
+    prizeModes: prizeModeByScore.slice(),
     questions: rows.map((r,i)=>({
       id: 'q'+(i+1),
       text: r.q,
@@ -638,7 +704,7 @@ document.getElementById('applyUniform')?.addEventListener('click', applyUniformO
 document.getElementById('cloneTop')?.addEventListener('click', copyTopRowToAll);
 mult.addEventListener('input', render);
 participants.addEventListener('input', render);
-qcount.addEventListener('input', ()=> { ensureCount(Math.max(1, Math.min(50, Number(qcount.value)||1))); prizeByScore=[]; currentPresetId=null; });
+qcount.addEventListener('input', ()=> { ensureCount(Math.max(1, Math.min(50, Number(qcount.value)||1))); prizeByScore=[]; prizeModeByScore=[]; currentPresetId=null; });
 toggleImplied.addEventListener('change', ()=>{ showImplied = toggleImplied.checked; render(); });
 
 /* Preset events */
