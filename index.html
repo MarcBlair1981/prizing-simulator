@@ -261,13 +261,14 @@ function renderRows(){
 
 /* Math */
 function poissonBinomialPMF(ps){
-  const n = ps.length;
-  const dp = new Float64Array(n+1);
-  dp[0] = 1.0;
-  for (let i=0;i<n;i++){ const p = ps[i];
-    for (let k=i+1;k>=0;k--){ const stay = dp[k]*(1-p); const take = k>0 ? dp[k-1]*p : 0.0; dp[k] = stay + take; }
-  }
-  return Array.from(dp);
+  // ... (Keep the rest of the function unchanged)
+  const n = ps.length;
+  const dp = new Float64Array(n+1);
+  dp[0] = 1.0;
+  for (let i=0;i<n;i++){ const p = ps[i];
+    for (let k=i+1;k>=0;k--){ const stay = dp[k]*(1-p); const take = k>0 ? dp[k-1]*p : 0.0; dp[k] = stay + take; }
+  }
+  return Array.from(dp);
 }
 
 /* Formatting */
