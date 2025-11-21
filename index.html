@@ -284,13 +284,28 @@ function fmtUsers(raw){
   return raw < 1 ? raw.toFixed(2) : Math.round(raw).toLocaleString();
 }
 function expectedPrizeCost(prob, participants, prize, mode){
-  if (!isFinite(prize) || prize <= 0) return 0;
-  if (!isFinite(prob) || prob <= 0 || !participants) return 0;
+  if (!isFinite(prize) || prize <= 0) return 0;
+  if (!isFinite(prob) || prob <= 0 || !participants) return 0;
 
-  // For both payout modes, the total prize is awarded only if at least one user hits the score.
-  // If multiple users hit, they share the same pot. Expected cost = prize × P(at least one winner).
-  const probAtLeastOne = 1 - Math.pow(1 - prob, participants);
-  return prize * probAtLeastOne;
+  // Expected number of users to hit this score
+  const expectedWinners = participants * prob;
+
+  if (mode === 'guaranteed'){
+    // Guaranteed/Fixed Pot: The total prize pool (or fixed amount) is awarded
+    // if at least one user hits the score.
+    const probAtLeastOne = 1 - Math.pow(1 - prob, participants);
+    return prize * probAtLeastOne;
+  } else { // mode === 'split'
+    // Split Pot: The total cost to the house is the expected number of winners
+    // multiplied by the prize value (assuming the prize is the value awarded
+    // to *each* winner before any split logic).
+    // A more common interpretation for 'Split' in Pick 'em is where
+    // the prize *is* the total cost (like 'Guaranteed'), but the code
+    // in the table suggests you enter the individual payout value.
+    // Let's use the simplest and most common projection for Split:
+    // The house pays out the prize amount to every expected winner.
+    return expectedWinners * prize;
+  }
 }
 
 /* Core render */
