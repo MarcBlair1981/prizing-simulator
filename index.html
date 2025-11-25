@@ -1,6 +1,6 @@
 <!doctype html>
 <meta charset="utf-8">
-<title>F2P – Interactive Odds Demo (SPLASH Tech, v3.0)</title>
+<title id="pageTitle">F2P – Interactive Odds Demo (SPLASH Tech, v3.0)</title>
 <link rel="stylesheet" href="style.css">
 <!-- Add Inter font -->
 <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -14,29 +14,30 @@
       <div class="brandname" id="brandName">SPLASH Tech</div>
       <div class="brandsub" id="brandSub">Free-to-Play Projection Tools</div>
     </div>
-    <div style="margin-left:auto" class="brandsub">v3.0</div>
+    <div style="margin-left:auto" class="brandsub" id="version">v3.0</div>
   </div>
 </div>
 <div class="wm" id="wm"></div>
 
 <div class="wrap">
-  <h2 style="margin:0 0 6px 0">F2P – Interactive Odds Demo</h2>
-  <div class="muted">Enter question text and decimal odds for the <b>optimal pick</b>. Use the controls to project
+  <h2 style="margin:0 0 6px 0" id="mainHeader">F2P – Interactive Odds Demo</h2>
+  <div class="muted" id="introText">Enter question text and decimal odds for the <b>optimal pick</b>. Use the controls
+    to project
     winners and the full score distribution.</div>
 
   <div class="grid g2" style="margin-top:12px">
     <div class="card">
-      <div class="muted">Participants</div>
+      <div class="muted" id="participantsLabel">Participants</div>
       <input id="participants" type="number" min="100" step="100" value="1000">
-      <div class="muted" style="margin-top:8px">Number of questions</div>
+      <div class="muted" style="margin-top:8px" id="questionsCountLabel">Number of questions</div>
       <input id="qcount" type="number" min="1" max="50" step="1" value="6">
 
-      <div class="muted" style="margin-top:8px">Game Template</div>
+      <div class="muted" style="margin-top:8px" id="gameTemplateLabel">Game Template</div>
       <select id="gameTemplate" style="margin-bottom:8px">
-        <option value="">(Select a template)</option>
+        <option value="" id="selectTemplatePlaceholder">(Select a template)</option>
       </select>
 
-      <div class="muted">Question template</div>
+      <div class="muted" id="questionTemplateLabel">Question template</div>
       <input id="template" list="templates" type="text" placeholder="Type or choose (auto-fills when you add rows)">
       <datalist id="templates">
         <option>Which team will win the match?</option>
@@ -55,39 +56,41 @@
     </div>
 
     <div class="card">
-      <div class="muted row"
+      <div class="muted row hidden" id="oddsMultiplierRow"
         title="Multiplies each DECIMAL odd before converting to probability (p = 1/(odds × multiplier)). Lower = easier; Higher = harder.">
-        <span>Odds multiplier</span><span class="pill" id="multDisp">×1.00</span>
+        <span id="oddsMultiplierLabel">Odds multiplier</span><span class="pill" id="multDisp">×1.00</span>
       </div>
-      <div class="row" style="margin-top:6px"><input id="mult" type="range" min="0.50" max="2.00" step="0.01"
+      <div class="row hidden" style="margin-top:6px"><input id="mult" type="range" min="0.50" max="2.00" step="0.01"
           value="1.00"></div>
 
-      <div class="muted" style="margin-top:10px">Quick actions</div>
+      <div class="muted" style="margin-top:10px" id="quickActionsLabel">Quick actions</div>
       <div class="row" style="margin-top:6px">
         <button id="addRow" class="btn">Add question</button>
         <button id="clearRows" class="btn">Clear all</button>
         <button id="example" class="btn">Load example</button>
         <button id="export" class="btn">Export JSON</button>
+        <button id="loadCSV" class="btn">Load CSV</button>
+        <input type="file" id="csvFileInput" accept=".csv" style="display:none">
         <label class="row" style="margin-left:auto;gap:6px;align-items:center">
           <input id="toggleImplied" type="checkbox" checked>
-          <span class="muted">Show Implied Odds</span>
+          <span class="muted" id="showImpliedLabel">Show Implied Odds</span>
         </label>
       </div>
 
-      <div class="muted" style="margin-top:10px">Bulk Operations</div>
+      <div class="muted" style="margin-top:10px" id="bulkOperationsLabel">Bulk Operations</div>
       <div class="row" style="margin-top:6px;gap:8px">
         <select id="uniformOddsSelect"
           style="max-width:180px;background:#0b152a;color:var(--text);border:1px solid var(--line);border-radius:10px;padding:8px 10px"></select>
         <button id="applyUniform" class="btn">Apply Uniform Odds</button>
         <button id="cloneTop" class="btn" style="margin-left:auto">Clone Top Row to All</button>
       </div>
-      <div class="muted" style="margin-top:12px">Paytable presets</div>
+      <div class="muted" style="margin-top:12px" id="paytablePresetsLabel">Paytable presets</div>
       <div class="row" style="gap:8px;margin-top:6px">
         <select id="presetSelect"
           style="min-width:220px;background:#0b152a;color:var(--text);border:1px solid var(--line);border-radius:10px;padding:8px 10px"></select>
         <label class="row" style="gap:6px;align-items:center">
           <input id="applyStructure" type="checkbox" checked>
-          <span class="muted">Apply structure (N & odds)</span>
+          <span class="muted" id="applyStructureLabel">Apply structure (N & odds)</span>
         </label>
         <button id="previewPreset" class="btn">Preview</button>
         <button id="applyPreset" class="btn">Apply</button>
@@ -99,32 +102,32 @@
   </div>
 
   <div class="card" style="margin-top:12px">
-    <div class="muted">Questions (type to edit; odds = decimal for optimal pick)</div>
+    <div class="muted" id="questionsListLabel">Questions (type to edit; odds = decimal for optimal pick)</div>
     <div id="qlist"></div>
   </div>
 
   <div class="grid g3" style="margin-top:12px">
     <div class="card">
-      <div class="muted">Questions</div>
+      <div class="muted" id="statQuestions">Questions</div>
       <div id="qstat" class="big">–</div>
     </div>
     <div class="card">
-      <div class="muted">Combined optimal-path probability</div>
+      <div class="muted" id="statProb">Combined optimal-path probability</div>
       <div id="comb" class="big">–</div>
     </div>
     <div class="card">
-      <div class="muted">Expected perfect winners @ <span id="pdisp"></span></div>
+      <div class="muted"><span id="statWinners">Expected perfect winners @</span> <span id="pdisp"></span></div>
       <div id="winners" class="big">–</div>
     </div>
   </div>
 
   <div class="card" style="margin-top:12px">
-    <div class="muted">Expected users at each score (Poisson–binomial, independent questions)</div>
+    <div class="muted" id="distTableLabel">Expected users at each score (Poisson–binomial, independent questions)</div>
     <table class="table" id="dist"></table>
   </div>
 
   <div class="card" style="margin-top:12px;position:relative">
-    <div class="muted chart-title" style="margin-bottom:6px">
+    <div class="muted chart-title" style="margin-bottom:6px" id="chartSectionTitle">
       <b>Score distribution</b> — X: score (0..N), Y: % of users. Line = CDF (≤ score).
     </div>
     <svg id="chart" class="chart" viewBox="0 0 1000 320" preserveAspectRatio="none"></svg>
@@ -132,4 +135,5 @@
   </div>
 </div>
 
+<script src="config.js"></script>
 <script src="script.js"></script>

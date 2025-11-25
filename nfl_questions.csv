@@ -1,0 +1,12 @@
+# Template: NFL Pick'em (10 questions, 1.92 odds),
+Question,Odds,Answer
+Will the Chiefs win by more than 6?,1.92,Yes
+Will the Bills win by more than 6?,1.92,Yes
+Will the Cowboys win by more than 6?,1.92,No
+Will the 49ers win by more than 6?,1.92,Yes
+Will the Eagles win by more than 6?,1.92,Yes
+Will the Ravens win by more than 6?,1.92,No
+Will the Packers win by more than 6?,1.92,No
+Will the Lions win by more than 6?,1.92,Yes
+Will the Dolphins win by more than 6?,1.92,No
+Will the Bengals win by more than 6?,1.92,Yes
