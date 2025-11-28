@@ -26,7 +26,7 @@ const PRESETS = [
         label: 'NFL 10Q • 1.92 (Split Top 3)',
         questions: 10,
         oddsPerQuestion: 1.92,
-        prizes: [0, 0, 0, 0, 0, 0, 0, 0, 100, 1000, 10000],
+        prizes: [0, 0, 0, 0, 0, 0, 0, 0, 100, 250, 1000],
         note: 'Top three scores (10/10, 9/10, 8/10) are Split. Others are Guaranteed.',
         prizeModes: ['guaranteed', 'guaranteed', 'guaranteed', 'guaranteed', 'guaranteed', 'guaranteed', 'guaranteed', 'guaranteed', 'split', 'split', 'split']
     },
