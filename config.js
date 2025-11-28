@@ -30,7 +30,7 @@ const CONFIG = {
   btnApplyUniform: "Apply Odds",
   btnCloneTop: "Clone Top Row to All",
 
-  paytablePresetsLabel: "Paytable presets",
+  paytablePresetsLabel: "Paytable Presets",
   applyStructureLabel: "Apply structure (N & odds)",
   btnPreview: "Preview",
   btnApply: "Apply",

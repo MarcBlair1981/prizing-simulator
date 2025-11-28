@@ -1,6 +1,5 @@
 /* ---------- SPLASH Tech brand (kept fully, including long data URI) ---------- */
-const BRAND_NAME = 'SPLASH Tech';
-const BRAND_SUB = 'Free-to-Play Projection Tools';
+// Use CONFIG for these values now
 const BRAND_LOGO_URL = './splashlogo.png';
 
 /* Inline logo as data URI (PNG) — SAME AS PREVIOUSLY PROVIDED */
@@ -24,63 +23,95 @@ document.addEventListener('keydown', (e) => {
   if (e.key === 'F12') e.preventDefault();
 }, { capture: true });
 
-/* Brand init */
+/* Brand init & UI Config Application */
+function applyUiConfig() {
+  if (typeof CONFIG === 'undefined') {
+    console.error("CONFIG object not found. Make sure config.js is loaded.");
+    return;
+  }
+
+  // Helper to set text content safely
+  const setText = (id, text) => {
+    const el = document.getElementById(id);
+    if (el) el.innerHTML = text; // Using innerHTML to allow simple formatting like <b>
+  };
+
+  // Helper to set placeholder
+  const setPlaceholder = (id, text) => {
+    const el = document.getElementById(id);
+    if (el) el.placeholder = text;
+  };
+
+  // Helper to set title attribute
+  const setTitle = (id, text) => {
+    const el = document.getElementById(id);
+    if (el) el.title = text;
+  };
+
+  // Apply Branding & Headers
+  setText('pageTitle', CONFIG.pageTitle);
+  setText('brandName', CONFIG.brandName);
+  setText('brandSub', CONFIG.brandSub);
+  setText('version', CONFIG.version);
+  setText('mainHeader', CONFIG.mainHeader);
+  setText('introText', CONFIG.introText);
+
+  // Apply Input Section
+  setText('participantsLabel', CONFIG.participantsLabel);
+  setText('questionsCountLabel', CONFIG.questionsCountLabel);
+  setText('gameTemplateLabel', CONFIG.gameTemplateLabel);
+  setText('selectTemplatePlaceholder', CONFIG.selectTemplatePlaceholder);
+  setText('questionTemplateLabel', CONFIG.questionTemplateLabel);
+  setPlaceholder('template', CONFIG.questionTemplatePlaceholder);
+
+  // Apply Controls Section
+  setText('oddsMultiplierLabel', CONFIG.oddsMultiplierLabel);
+  setTitle('oddsMultiplierRow', CONFIG.oddsMultiplierTooltip);
+  setText('quickActionsLabel', CONFIG.quickActionsLabel);
+  setText('addRow', CONFIG.btnAdd);
+  setText('clearRows', CONFIG.btnClear);
+  setText('example', CONFIG.btnExample);
+  setText('export', CONFIG.btnExport);
+  setText('showImpliedLabel', CONFIG.showImpliedLabel);
+
+  setText('bulkOperationsLabel', CONFIG.bulkOperationsLabel);
+  setText('applyUniform', CONFIG.btnApplyUniform);
+  setText('cloneTop', CONFIG.btnCloneTop);
+
+  setText('paytablePresetsLabel', CONFIG.paytablePresetsLabel);
+  setText('applyStructureLabel', CONFIG.applyStructureLabel);
+  setText('previewPreset', CONFIG.btnPreview);
+  setText('applyPreset', CONFIG.btnApply);
+
+  // Apply Questions List Label
+  setText('questionsListLabel', CONFIG.questionsListLabel);
+
+  // Apply Stats Grid
+  setText('statQuestions', CONFIG.statQuestions);
+  setText('statProb', CONFIG.statProb);
+  setText('statWinners', CONFIG.statWinners);
+
+  // Apply Distribution Table Label
+  setText('distTableLabel', CONFIG.distTableLabel);
+
+  // Apply Chart Title
+  setText('chartSectionTitle', CONFIG.chartSectionTitle);
+
+  // Update Watermark
+  document.getElementById('wm').style.backgroundImage = `url('${watermarkDataURI(CONFIG.brandName)}')`;
+}
+
 (function brandInit() {
   const img = document.getElementById('brandLogo');
   img.src = BRAND_LOGO_URL;
   img.onerror = () => { img.src = BRAND_LOGO_DATA_URI; }; // fallback
-  document.getElementById('brandName').textContent = BRAND_NAME;
-  document.getElementById('brandSub').textContent = BRAND_SUB;
-  document.getElementById('wm').style.backgroundImage = `url('${watermarkDataURI(BRAND_NAME)}')`;
+
+  // Apply the rest of the UI config
+  applyUiConfig();
 })();
 
-/* -------- presets -------- */
-const PRESETS = [
-  {
-    id: 'pick6_850',
-    label: 'Pick6 • 8.50',
-    questions: 6,
-    oddsPerQuestion: 8.50,
-    // prizes index = score (0..N)
-    prizes: [0, 0, 10, 20, 100, 1000, 10000],
-    note: '6/6 $10,000; 5/6 $1,000; 4/6 $100; 3/6 $20; 2/6 $10',
-    prizeModes: null,
-  },
-  // NEW PRESET ADDED HERE (Split Top 2)
-  {
-    id: 'pick6_split_top',
-    label: 'Pick6 • 8.50 (Split Top 2)',
-    questions: 6,
-    oddsPerQuestion: 8.50,
-    prizes: [0, 0, 10, 20, 100, 1000, 10000],
-    note: 'Top two scores (6/6, 5/6) are Split. Others are Guaranteed.',
-    // Prize modes for scores 0 through 6 (N=6):
-    prizeModes: ['guaranteed', 'guaranteed', 'guaranteed', 'guaranteed', 'guaranteed', 'split', 'split']
-  }
-];
-
-/* -------- uniform odds presets (NEW) -------- */
-const UNIFORM_ODDS_PRESETS = [
-  { value: 2.00, label: '50% (2.00)' },
-  { value: 2.50, label: '40% (2.50)' },
-  { value: 3.00, label: '33.3% (3.00)' },
-  { value: 4.00, label: '25% (4.00)' },
-  { value: 6.00, label: '16.7% (6.00)' },
-  { value: 8.50, label: '11.8% (8.50) - Pick6 default' },
-  { value: 10.00, label: '10% (10.00)' },
-  { value: 16.00, label: '6.25% (16.00)' }
-];
-
-/* -------- Game Templates (NEW) -------- */
-const GAME_TEMPLATES = [
-  { id: 'pick6', label: 'Pick 6', questions: 6, text: 'What will be the correct score?', odds: 8.5 },
-  { id: 'coupon10', label: 'Coupon (10Q)', questions: 10, text: 'Match Result', odds: 1.8 },
-  { id: 'quiz8', label: '8 Question Predictor Quiz', questions: 8, text: 'Question', odds: 4.8 },
-  { id: 'goals6', label: 'How many goals? (6Q)', questions: 6, text: 'How many goals will be scored?', odds: 4 },
-  { id: 'goals8', label: 'How many goals? (8Q)', questions: 8, text: 'How many goals will be scored?', odds: 2 },
-  { id: 'gcc9', label: 'Goals, Corners, Cards (9Q)', questions: 9, text: 'Prediction', odds: 4 },
-  { id: 'nfl', label: "NFL Pick'em", questions: 16, text: 'Who will win?', odds: 1.92 }
-];
+/* -------- presets loaded from presets.js -------- */
+// PRESETS, UNIFORM_ODDS_PRESETS, and GAME_TEMPLATES are now defined in presets.js
 
 /* -------- app state -------- */
 let rows = [];
@@ -116,13 +147,19 @@ const presetPreview = document.getElementById('presetPreview');
 function status(msg, ms = 1600) { statusEl.textContent = msg; if (ms) { setTimeout(() => statusEl.textContent = '', ms); } }
 
 /* Rows ops */
-function addRow(q = '', odds = 2.00, a = 'Optimal pick') { rows.push({ q, odds: Number(odds) || 2.00, a }); renderRows(); }
+function addRow(q = '', odds = 2.00, a = '') {
+  // Use CONFIG defaults if not provided
+  const defaultQ = CONFIG.defaultQuestionText;
+  const defaultA = CONFIG.defaultAnswerText;
+  rows.push({ q: q || defaultQ, odds: Number(odds) || 2.00, a: a || defaultA });
+  renderRows();
+}
 function removeRow(idx) { rows.splice(idx, 1); render(); }
 function ensureCount(n) {
   while (rows.length < n) {
     const tmpl = templateInput.value.trim();
-    const base = tmpl || 'What will be the Correct Score?';
-    addRow(base, 2.00, 'Optimal pick');
+    const base = tmpl || CONFIG.defaultNewQuestion;
+    addRow(base, 2.00, CONFIG.defaultAnswerText);
   }
   while (rows.length > n) { rows.pop(); }
   renderRows();
@@ -202,7 +239,8 @@ function render() {
   const ps = rows.map(r => 1.0 / (Math.max(1.01, r.odds) * m));
 
   let combined = 1.0; for (const p of ps) combined *= p;
-  comb.textContent = (combined * 100).toFixed(6) + '%';
+  const decimalOdds = combined > 0 ? Math.round(1 / combined) : 0;
+  comb.textContent = (combined * 100).toFixed(3) + '% (' + decimalOdds.toLocaleString() + ')';
   const expectedPerfectUsers = participantsNum * combined;
   winners.textContent = fmtUsers(expectedPerfectUsers);
 
@@ -244,16 +282,16 @@ function drawDistributionTable(pmf) {
     if (!prizeModeByScore[k]) prizeModeByScore[k] = 'split';
   }
 
-  const impliedTh = `<th id="impliedHead" class="${showImplied ? '' : 'hidden'}">Implied Odds</th>`;
+  const impliedTh = `<th id="impliedHead" class="${showImplied ? '' : 'hidden'}">${CONFIG.tableHeaderImplied}</th>`;
   const head = `
     <tr>
-      <th>Score</th>
-      <th>Probability %</th>
+      <th>${CONFIG.tableHeaderScore}</th>
+      <th>${CONFIG.tableHeaderProb}</th>
       ${impliedTh}
-      <th>Expected Users @ ${participantsNum.toLocaleString()}</th>
-      <th>Prize</th>
-      <th>Payout Mode</th>
-      <th>Expected Prize</th>
+      <th>${CONFIG.tableHeaderUsers} ${participantsNum.toLocaleString()}</th>
+      <th>${CONFIG.tableHeaderPrize}</th>
+      <th>${CONFIG.tableHeaderMode}</th>
+      <th>${CONFIG.tableHeaderExpPrize}</th>
     </tr>`;
 
   const body = pmf.map((prob, k) => {
@@ -294,14 +332,19 @@ function drawDistributionTable(pmf) {
   const totalExpectedUsers = participantsNum; // The sum of expected users should perfectly equal the input participants
 
   // MODIFIED: Inject total Probability % and Expected Users into the table foot
+  const costPerUser = participantsNum > 0 ? totals / participantsNum : 0;
   const foot = `
     <tr style="font-weight:700">
-      <td style="text-align:left">TOTAL:</td>
+      <td style="text-align:left">${CONFIG.tableTotal}</td>
       <td>${fmtPct(totalProbability)}%</td>
       <td class="${showImplied ? '' : 'hidden'}"></td>
       <td>${participantsNum.toLocaleString()}</td>
-      <td colspan="2" style="text-align:right">Total Expected Prize:</td>
+      <td colspan="2" style="text-align:right">${CONFIG.tableTotalExpPrize}</td>
       <td>${fmtMoney(totals.toFixed(2))}</td>
+    </tr>
+    <tr style="font-weight:700">
+      <td colspan="6" style="text-align:right">Expected Cost Per User:</td>
+      <td>${fmtMoney(costPerUser.toFixed(2))}</td>
     </tr>`;
 
   distTbl.innerHTML = head + body + foot;
@@ -372,7 +415,7 @@ function drawScoreChartWithCDF(pmf, participantsCount) {
     const r = chart.getBoundingClientRect();
     const users = fmtUsers(participantsCount * (pmf[k]));
     tt.style.display = 'block'; tt.style.left = (e.clientX - r.left) + 'px'; tt.style.top = (e.clientY - r.top) + 'px';
-    tt.textContent = `Score ${k}/${n} • PMF ${vals[k].toFixed(4)}% • CDF ${cdf[k].toFixed(4)}% • ~${users} users`;
+    tt.textContent = `Score ${k}/${n} • ${CONFIG.chartLegendPMF} ${vals[k].toFixed(4)}% • ${CONFIG.chartLegendCDF} ${cdf[k].toFixed(4)}% • ~${users} users`;
   };
   const hideTip = () => { tt.style.display = 'none'; };
 
@@ -412,28 +455,28 @@ function drawScoreChartWithCDF(pmf, participantsCount) {
 
   const xTitle = document.createElementNS('http://www.w3.org/2000/svg', 'text');
   xTitle.setAttribute('x', (w - padR + padL) / 2); xTitle.setAttribute('y', h - 8);
-  xTitle.setAttribute('text-anchor', 'middle'); xTitle.setAttribute('font-size', '12'); xTitle.setAttribute('fill', '#cfe3ff'); xTitle.textContent = 'Score'; chart.appendChild(xTitle);
+  xTitle.setAttribute('text-anchor', 'middle'); xTitle.setAttribute('font-size', '12'); xTitle.setAttribute('fill', '#cfe3ff'); xTitle.textContent = CONFIG.chartXAxis; chart.appendChild(xTitle);
 
   const yTitle = document.createElementNS('http://www.w3.org/2000/svg', 'text');
   yTitle.setAttribute('x', 16); yTitle.setAttribute('y', (h - padB + padT) / 2);
   yTitle.setAttribute('transform', `rotate(-90, 16, ${(h - padB + padT) / 2})`);
-  yTitle.setAttribute('font-size', '12'); yTitle.setAttribute('fill', '#cfe3ff'); yTitle.textContent = '% of users'; chart.appendChild(yTitle);
+  yTitle.setAttribute('font-size', '12'); yTitle.setAttribute('fill', '#cfe3ff'); yTitle.textContent = CONFIG.chartYAxis; chart.appendChild(yTitle);
 
   const title = document.createElementNS('http://www.w3.org/2000/svg', 'text');
   title.setAttribute('x', padL); title.setAttribute('y', padT - 8);
   title.setAttribute('font-size', '13'); title.setAttribute('fill', '#ffffff'); title.setAttribute('font-weight', '700');
-  title.textContent = 'Score Distribution (bars) with CDF (line)'; chart.appendChild(title);
+  title.textContent = CONFIG.chartTitle; chart.appendChild(title);
 
   const lgY = padT - 12, lgX = w - padR - 210;
   const barSwatch = document.createElementNS('http://www.w3.org/2000/svg', 'rect');
   barSwatch.setAttribute('x', lgX); barSwatch.setAttribute('y', lgY); barSwatch.setAttribute('width', 14); barSwatch.setAttribute('height', 10); barSwatch.setAttribute('fill', '#60a5fa');
   const barLbl = document.createElementNS('http://www.w3.org/2000/svg', 'text');
-  barLbl.setAttribute('x', lgX + 18); barLbl.setAttribute('y', lgY + 10); barLbl.setAttribute('font-size', '12'); barLbl.setAttribute('fill', '#cfe3ff'); barLbl.textContent = 'PMF (% at score)';
+  barLbl.setAttribute('x', lgX + 18); barLbl.setAttribute('y', lgY + 10); barLbl.setAttribute('font-size', '12'); barLbl.setAttribute('fill', '#cfe3ff'); barLbl.textContent = CONFIG.chartLegendPMF;
   const lineSwatch = document.createElementNS('http://www.w3.org/2000/svg', 'line');
   lineSwatch.setAttribute('x1', lgX + 120); lineSwatch.setAttribute('x2', lgX + 150); lineSwatch.setAttribute('y1', lgY + 5); lineSwatch.setAttribute('y2', lgY + 5);
   lineSwatch.setAttribute('stroke', '#e5e7eb'); lineSwatch.setAttribute('stroke-width', '2');
   const lineLbl = document.createElementNS('http://www.w3.org/2000/svg', 'text');
-  lineLbl.setAttribute('x', lgX + 156); lineLbl.setAttribute('y', lgY + 10); lineLbl.setAttribute('font-size', '12'); lineLbl.setAttribute('fill', '#cfe3ff'); lineLbl.textContent = 'CDF (≤ score)';
+  lineLbl.setAttribute('x', lgX + 156); lineLbl.setAttribute('y', lgY + 10); lineLbl.setAttribute('font-size', '12'); lineLbl.setAttribute('fill', '#cfe3ff'); lineLbl.textContent = CONFIG.chartLegendCDF;
   chart.appendChild(barSwatch); chart.appendChild(barLbl); chart.appendChild(lineSwatch); chart.appendChild(lineLbl);
 }
 
@@ -444,17 +487,17 @@ function applyUniformOdds() {
   const v = parseFloat(select?.value ?? '');
 
   if (isNaN(v) || v < 1.01) {
-    status('Invalid odds selected (must be ≥ 1.01).');
+    status(CONFIG.msgInvalidOdds);
     return;
   }
   rows.forEach(r => { r.odds = v; });
   renderRows();
-  status(`Applied uniform odds of ${v.toFixed(2)} to all questions.`);
+  status(CONFIG.msgAppliedUniform.replace('{0}', v.toFixed(2)));
 }
 function copyTopRowToAll() {
   if (rows.length === 0) return;
   const t = rows[0]; rows = rows.map((r, i) => i === 0 ? r : ({ q: t.q, odds: t.odds, a: t.a }));
-  renderRows(); status('Copied top row to all.');
+  renderRows(); status(CONFIG.msgCopiedTop);
 }
 
 /* -------- Presets UI + logic -------- */
@@ -476,7 +519,7 @@ function getPresetById(id) { return PRESETS.find(p => p.id === id) || null; }
 
 function previewPreset() {
   const p = getPresetById(presetSelect.value);
-  if (!p) { presetPreview.textContent = 'No preset found.'; return; }
+  if (!p) { presetPreview.textContent = CONFIG.msgPresetNotFound; return; }
 
   const m = Number(mult.value);
   const participantsNum = Number(participants.value) || 0;
@@ -538,7 +581,7 @@ function previewPreset() {
         <div>
           <div class="muted" style="margin-bottom:4px">Prize ladder</div>
           <table class="table" style="border:1px solid #1b2a43;border-radius:8px;overflow:hidden">
-            <thead><tr><th>Score</th><th>Prize</th><th>Payout</th></tr></thead>
+            <thead><tr><th>${CONFIG.tableHeaderScore}</th><th>${CONFIG.tableHeaderPrize}</th><th>${CONFIG.tableHeaderMode}</th></tr></thead>
             <tbody>${ladderHTML}</tbody>
           </table>
         </div>
@@ -557,7 +600,7 @@ function previewPreset() {
 
 function applyPreset() {
   const p = getPresetById(presetSelect.value);
-  if (!p) { status('Preset not found'); return; }
+  if (!p) { status(CONFIG.msgPresetNotFound); return; }
   const useStructure = applyStructure.checked;
 
   if (useStructure) {
@@ -580,8 +623,159 @@ function applyPreset() {
 
   currentPresetId = p.id;
   renderRows(); // also re-renders everything
-  status(`Applied preset: ${p.label}`);
+  status(CONFIG.msgAppliedPreset.replace('{0}', p.label));
 }
+
+// ============================================
+// MISSING FUNCTIONS FOR script.js
+// ============================================
+// These functions need to be added to script.js around line 728
+// (after the export button event listener, before firstLoadMaybeApplyDefault())
+
+document.getElementById('applyUniform')?.addEventListener('click', applyUniformOdds);
+document.getElementById('cloneTop')?.addEventListener('click', copyTopRowToAll);
+mult.addEventListener('input', render);
+participants.addEventListener('input', render);
+qcount.addEventListener('input', () => { ensureCount(Math.max(1, Math.min(50, Number(qcount.value) || 1))); prizeByScore = []; prizeModeByScore = []; currentPresetId = null; });
+
+document.getElementById('previewPreset').addEventListener('click', previewPreset);
+document.getElementById('applyPreset').addEventListener('click', applyPreset);
+
+/* -------- Game Templates Logic -------- */
+const gameTemplateSelect = document.getElementById('gameTemplate');
+
+function initGameTemplates() {
+  gameTemplateSelect.innerHTML = `<option value="">${CONFIG.selectTemplatePlaceholder}</option>` +
+    GAME_TEMPLATES.map(t => `<option value="${t.id}">${t.label}</option>`).join('');
+
+  gameTemplateSelect.addEventListener('change', () => {
+    const tId = gameTemplateSelect.value;
+    const t = GAME_TEMPLATES.find(x => x.id === tId);
+    if (!t) return;
+
+    // Apply template - create N questions with template text and odds
+    rows = [];
+    for (let i = 0; i < t.questions; i++) {
+      rows.push({ q: t.text, odds: t.odds, a: CONFIG.defaultAnswerText });
+    }
+    qcount.value = t.questions;
+
+    // Reset other state
+    prizeByScore = [];
+    prizeModeByScore = [];
+    currentPresetId = null;
+
+    renderRows();
+    status(`Applied template: ${t.label}`);
+  });
+}
+
+/* -------- CSV Upload Logic -------- */
+function loadCSV(file) {
+  const reader = new FileReader();
+  reader.onload = function (e) {
+    try {
+      const text = e.target.result;
+      const lines = text.split('\n').map(line => line.trim()).filter(line => line && !line.startsWith('#'));
+
+      if (lines.length === 0) {
+        status(CONFIG.msgCSVError.replace('{0}', 'Empty file'));
+        return;
+      }
+
+      // Parse CSV (simple parser - assumes format: Question,Odds,Answer)
+      // Skip header row if it exists
+      const firstLine = lines[0].toLowerCase();
+      const startIndex = (firstLine.includes('question') || firstLine.includes('text')) ? 1 : 0;
+
+      rows = [];
+      for (let i = startIndex; i < lines.length; i++) {
+        const line = lines[i];
+        if (!line) continue;
+
+        // Simple CSV parsing (handles quoted fields)
+        const parts = parseCSVLine(line);
+        if (parts.length >= 1) {
+          const question = parts[0] || CONFIG.defaultQuestionText;
+          const odds = parts.length >= 2 && parts[1] ? parseFloat(parts[1]) : 2.0;
+          const answer = parts.length >= 3 && parts[2] ? parts[2] : CONFIG.defaultAnswerText;
+
+          rows.push({
+            q: question,
+            odds: isNaN(odds) ? 2.0 : Math.max(1.01, odds),
+            a: answer
+          });
+        }
+      }
+
+      if (rows.length === 0) {
+        status(CONFIG.msgCSVError.replace('{0}', 'No valid questions found'));
+        return;
+      }
+
+      qcount.value = rows.length;
+      renderRows();
+      status(CONFIG.msgCSVLoaded.replace('{0}', rows.length));
+    } catch (error) {
+      status(CONFIG.msgCSVError.replace('{0}', error.message));
+    }
+  };
+  reader.readAsText(file);
+}
+
+// Simple CSV line parser (handles quoted fields)
+function parseCSVLine(line) {
+  const result = [];
+  let current = '';
+  let inQuotes = false;
+
+  for (let i = 0; i < line.length; i++) {
+    const char = line[i];
+    const nextChar = line[i + 1];
+
+    if (char === '"') {
+      if (inQuotes && nextChar === '"') {
+        // Escaped quote
+        current += '"';
+        i++; // Skip next quote
+      } else {
+        // Toggle quote mode
+        inQuotes = !inQuotes;
+      }
+    } else if (char === ',' && !inQuotes) {
+      // End of field
+      result.push(current.trim());
+      current = '';
+    } else {
+      current += char;
+    }
+  }
+
+  // Add last field
+  result.push(current.trim());
+  return result;
+}
+
+/* Init */
+initPresetSelect();
+initUniformOddsSelect();
+initGameTemplates();
+firstLoadMaybeApplyDefault();
+renderRows();
+
+// CSV Upload Event Listeners
+document.getElementById('loadCSV')?.addEventListener('click', () => {
+  document.getElementById('csvFileInput').click();
+});
+
+document.getElementById('csvFileInput')?.addEventListener('change', (e) => {
+  const file = e.target.files[0];
+  if (file) {
+    loadCSV(file);
+    // Reset file input so the same file can be loaded again
+    e.target.value = '';
+  }
+});
 
 /* First-load initializer (non-destructive for returning users) */
 function firstLoadMaybeApplyDefault() {
@@ -593,7 +787,7 @@ function firstLoadMaybeApplyDefault() {
 
   if (defaultPreset) {
     ensureCount(defaultPreset.questions);
-    rows.forEach(r => { r.odds = defaultPreset.oddsPerQuestion; r.q = r.q || 'Question'; r.a = r.a || 'Optimal pick'; });
+    rows.forEach(r => { r.odds = defaultPreset.oddsPerQuestion; r.q = r.q || CONFIG.defaultQuestionText; r.a = r.a || CONFIG.defaultAnswerText; });
     qcount.value = defaultPreset.questions;
     prizeByScore = Array(defaultPreset.questions + 1).fill(0);
     // MODIFIED: Incorporate prizeModes
@@ -610,7 +804,7 @@ function firstLoadMaybeApplyDefault() {
 }
 
 /* Events */
-document.getElementById('addRow').addEventListener('click', () => addRow(templateInput.value || `Question ${rows.length + 1}`, 2.00, 'Optimal pick'));
+document.getElementById('addRow').addEventListener('click', () => addRow(templateInput.value || `${CONFIG.defaultQuestionText} ${rows.length + 1}`, 2.00, CONFIG.defaultAnswerText));
 document.getElementById('clearRows').addEventListener('click', () => { rows = []; prizeByScore = []; prizeModeByScore = []; currentPresetId = null; renderRows(); });
 document.getElementById('example').addEventListener('click', () => {
   rows = [
@@ -628,7 +822,7 @@ document.getElementById('example').addEventListener('click', () => {
 document.getElementById('export').addEventListener('click', () => {
   const m = Number(mult.value);
   const out = {
-    title: `F2P – Interactive Demo (${BRAND_NAME})`,
+    title: `${CONFIG.mainHeader} (${CONFIG.brandName})`,
     participants: Number(participants.value),
     presetId: currentPresetId || null,
     prizes: prizeByScore.slice(), // include prize ladder in export
@@ -639,53 +833,13 @@ document.getElementById('export').addEventListener('click', () => {
       answers: [{ id: 'q' + (i + 1) + 'a1', label: r.a, decimal_odds: Number((Math.max(1.01, r.odds) * m).toFixed(4)), implied_p: 1.0 / (Math.max(1.01, r.odds) * m) }]
     }))
   };
-  const blob = new Blob([JSON.stringify(out, null, 2)], { type: 'application/json' });
-  const url = URL.createObjectURL(blob);
-  const a = document.createElement('a'); a.href = url; a.download = 'f2p_interactive_export.json'; a.click(); URL.revokeObjectURL(url);
-  status('Exported JSON downloaded.');
 });
 
-document.getElementById('applyUniform')?.addEventListener('click', applyUniformOdds);
-document.getElementById('cloneTop')?.addEventListener('click', copyTopRowToAll);
-mult.addEventListener('input', render);
-participants.addEventListener('input', render);
-qcount.addEventListener('input', () => { ensureCount(Math.max(1, Math.min(50, Number(qcount.value) || 1))); prizeByScore = []; prizeModeByScore = []; currentPresetId = null; });
-
-document.getElementById('previewPreset').addEventListener('click', previewPreset);
-document.getElementById('applyPreset').addEventListener('click', applyPreset);
-
-/* -------- Game Templates Logic -------- */
-const gameTemplateSelect = document.getElementById('gameTemplate');
-
-function initGameTemplates() {
-  gameTemplateSelect.innerHTML = '<option value="">(Select a template)</option>' +
-    GAME_TEMPLATES.map(t => `<option value="${t.id}">${t.label}</option>`).join('');
-
-  gameTemplateSelect.addEventListener('change', () => {
-    const tId = gameTemplateSelect.value;
-    const t = GAME_TEMPLATES.find(x => x.id === tId);
-    if (!t) return;
-
-    // Apply template
-    rows = [];
-    for (let i = 0; i < t.questions; i++) {
-      rows.push({ q: t.text, odds: t.odds, a: 'Optimal pick' });
-    }
-    qcount.value = t.questions;
-
-    // Reset other state
-    prizeByScore = [];
-    prizeModeByScore = [];
-    currentPresetId = null;
-
-    renderRows();
-    status(`Applied template: ${t.label}`);
-  });
-}
-
-/* Init */
-initPresetSelect();
-initUniformOddsSelect();
-initGameTemplates();
-firstLoadMaybeApplyDefault();
-renderRows();
+document.getElementById('csvFileInput')?.addEventListener('change', (e) => {
+  const file = e.target.files[0];
+  if (file) {
+    loadCSV(file);
+    // Reset file input so the same file can be loaded again
+    e.target.value = '';
+  }
+});
