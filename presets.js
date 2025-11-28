@@ -26,7 +26,7 @@ const PRESETS = [
         label: 'NFL 10Q • 1.92 (Split Top 3)',
         questions: 10,
         oddsPerQuestion: 1.92,
-        prizes: [0, 0, 0, 0, 0, 0, 0, 0, 100, 250, 1000],
+        prizes: [0, 0, 0, 0, 0, 0, 0, 1, 100, 250, 1000],
         note: 'Top three scores (10/10, 9/10, 8/10) are Split. Others are Guaranteed.',
         prizeModes: ['guaranteed', 'guaranteed', 'guaranteed', 'guaranteed', 'guaranteed', 'guaranteed', 'guaranteed', 'guaranteed', 'split', 'split', 'split']
     },
@@ -110,3 +110,4 @@ const GAME_TEMPLATES = [
     { id: 'gcc9', label: 'Goals, Corners, Cards (9Q)', questions: 9, text: 'Prediction', odds: 4 },
     { id: 'nfl', label: "NFL Pick'em", questions: 10, text: 'Will the Chiefs win by more than 6?', odds: 1.92 }
 ];
+
