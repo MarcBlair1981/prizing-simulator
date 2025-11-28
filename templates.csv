@@ -1,8 +1,8 @@
 id,label,questions,text,odds
 pick6,Pick 6,6,What will be the correct score?,8.5
-coupon10,Coupon (10Q),10,Which team will win the match?,1.8
+coupon10,Coupon (10Q),10,Match Result,1.8
 quiz8,8 Question Predictor Quiz,8,Question,4.8
 goals6,How many goals? (6Q),6,How many goals will be scored?,4
 goals8,How many goals? (8Q),8,How many goals will be scored?,2
 gcc9,"Goals, Corners, Cards (9Q)",9,Prediction,4
-nfl,NFL Pick'em,10,Will the Chiefs win by more than 6?,1.92
+nfl,NFL Pick'em,16,Who will win?,1.92
