@@ -87,6 +87,10 @@ const PRESETS = [
    ======================================== */
 
 const UNIFORM_ODDS_PRESETS = [
+    { value: 1.50, label: '66% (1.50)' },
+    { value: 1.67, label: '60% (1.67)' },
+    { value: 1.82, label: '55% (1.82)' }.
+    { value: 2.00, label: '50% (2.00)' }
     { value: 2.00, label: '50% (2.00)' },
     { value: 2.50, label: '40% (2.50)' },
     { value: 3.00, label: '33.3% (3.00)' },
