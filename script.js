@@ -349,7 +349,9 @@ function drawDistributionTable(pmf) {
 
   distTbl.innerHTML = head + body + foot;
 
-  distTbl.innerHTML = head + body + foot;
+  // Update the new stat cards
+  document.getElementById('expectedCost').textContent = fmtMoney(totals.toFixed(2));
+  document.getElementById('costPerUser').textContent = fmtMoney(costPerUser.toFixed(2));
 
   // Save prize edits
   distTbl.querySelectorAll('input[type=number][data-k]').forEach(inp => {
@@ -521,6 +523,15 @@ function previewPreset() {
   const p = getPresetById(presetSelect.value);
   if (!p) { presetPreview.textContent = CONFIG.msgPresetNotFound; return; }
 
+  // Check if preview is currently open
+  const isOpen = presetPreview.style.maxHeight && presetPreview.style.maxHeight !== '0px';
+
+  if (isOpen) {
+    // Close the preview
+    presetPreview.style.maxHeight = '0';
+    return;
+  }
+
   const m = Number(mult.value);
   const participantsNum = Number(participants.value) || 0;
 
@@ -531,8 +542,8 @@ function previewPreset() {
   if (useStructure) {
     for (let i = 0; i < N; i++) ps.push(1 / (Math.max(1.01, p.oddsPerQuestion) * m));
   } else {
-    for (let i = 0; i < N; i++) {
-      const r = rows[i] || { odds: 2 };
+    for (let i = 0; i < rows.length; i++) {
+      const r = rows[i];
       ps.push(1 / (Math.max(1.01, r.odds) * m));
     }
   }
@@ -596,6 +607,9 @@ function previewPreset() {
       </div>
     </div>
   `;
+
+  // Open the preview with animation
+  presetPreview.style.maxHeight = '2000px';
 }
 
 function applyPreset() {
@@ -782,16 +796,35 @@ function firstLoadMaybeApplyDefault() {
   const INIT_FLAG = '__f2p_init__';
   if (localStorage.getItem(INIT_FLAG)) return; // already initialized before
 
-  // MODIFIED: Use the new preset as the default
-  const defaultPreset = getPresetById('pick6_split_top') || getPresetById('pick6_850');
+  // Apply default Game Template if specified in CONFIG
+  if (CONFIG.defaultGameTemplate) {
+    const defaultTemplate = GAME_TEMPLATES.find(t => t.id === CONFIG.defaultGameTemplate);
+    if (defaultTemplate) {
+      rows = [];
+      for (let i = 0; i < defaultTemplate.questions; i++) {
+        rows.push({ q: defaultTemplate.text, odds: defaultTemplate.odds, a: CONFIG.defaultAnswerText });
+      }
+      qcount.value = defaultTemplate.questions;
+      // Set the Game Template dropdown to show the selected template
+      gameTemplateSelect.value = CONFIG.defaultGameTemplate;
+    }
+  }
+
+  // Apply default Paytable Preset
+  const defaultPresetId = CONFIG.defaultPaytablePreset || 'pick6_split_top';
+  const defaultPreset = getPresetById(defaultPresetId) || getPresetById('pick6_split_top') || getPresetById('pick6_850');
 
   if (defaultPreset) {
-    ensureCount(defaultPreset.questions);
-    rows.forEach(r => { r.odds = defaultPreset.oddsPerQuestion; r.q = r.q || CONFIG.defaultQuestionText; r.a = r.a || CONFIG.defaultAnswerText; });
-    qcount.value = defaultPreset.questions;
-    prizeByScore = Array(defaultPreset.questions + 1).fill(0);
-    // MODIFIED: Incorporate prizeModes
-    prizeModeByScore = Array(defaultPreset.questions + 1).fill('split');
+    // If no game template was applied, ensure we have the right number of questions
+    if (!CONFIG.defaultGameTemplate) {
+      ensureCount(defaultPreset.questions);
+      rows.forEach(r => { r.odds = defaultPreset.oddsPerQuestion; r.q = r.q || CONFIG.defaultQuestionText; r.a = r.a || CONFIG.defaultAnswerText; });
+      qcount.value = defaultPreset.questions;
+    }
+
+    // Apply prize structure
+    prizeByScore = Array(rows.length + 1).fill(0);
+    prizeModeByScore = Array(rows.length + 1).fill('split');
     for (let k = 0; k < prizeByScore.length && k < defaultPreset.prizes.length; k++) {
       prizeByScore[k] = defaultPreset.prizes[k] || 0;
       if (defaultPreset.prizeModes && defaultPreset.prizeModes[k]) {
@@ -799,7 +832,10 @@ function firstLoadMaybeApplyDefault() {
       }
     }
     currentPresetId = defaultPreset.id;
+    // Set the Paytable Preset dropdown to show the selected preset
+    presetSelect.value = defaultPreset.id;
   }
+
   localStorage.setItem(INIT_FLAG, '1'); // only once
 }
 
@@ -825,7 +861,7 @@ document.getElementById('export').addEventListener('click', () => {
     title: `${CONFIG.mainHeader} (${CONFIG.brandName})`,
     participants: Number(participants.value),
     presetId: currentPresetId || null,
-    prizes: prizeByScore.slice(), // include prize ladder in export
+    prizes: prizeByScore.slice(),
     prizeModes: prizeModeByScore.slice(),
     questions: rows.map((r, i) => ({
       id: 'q' + (i + 1),
@@ -833,13 +869,10 @@ document.getElementById('export').addEventListener('click', () => {
       answers: [{ id: 'q' + (i + 1) + 'a1', label: r.a, decimal_odds: Number((Math.max(1.01, r.odds) * m).toFixed(4)), implied_p: 1.0 / (Math.max(1.01, r.odds) * m) }]
     }))
   };
+  const blob = new Blob([JSON.stringify(out, null, 2)], { type: 'application/json' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url; a.download = 'f2p_export.json'; a.click(); URL.revokeObjectURL(url);
+  status(CONFIG.msgExported);
 });
-
-document.getElementById('csvFileInput')?.addEventListener('change', (e) => {
-  const file = e.target.files[0];
-  if (file) {
-    loadCSV(file);
-    // Reset file input so the same file can be loaded again
-    e.target.value = '';
-  }
-});
+toggleImplied.addEventListener('change', () => { showImplied = toggleImplied.checked; render(); });

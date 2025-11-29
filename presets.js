@@ -53,10 +53,10 @@ const PRESETS = [
     },
     {
         id: 'highstakes_pick6',
-        label: 'High Stakes Pick 6 • 10.00',
+        label: 'Aggressive Pick 6',
         questions: 6,
-        oddsPerQuestion: 10.00,
-        prizes: [0, 0, 0, 50, 500, 5000, 50000],
+        oddsPerQuestion: 8.50,
+        prizes: [0, 0.5, 5, 10, 100, 1000, 100000],
         note: '6/6 $50,000; 5/6 $5,000 (Split top score only)',
         prizeModes: ['guaranteed', 'guaranteed', 'guaranteed', 'guaranteed', 'guaranteed', 'guaranteed', 'split']
     },
@@ -68,6 +68,15 @@ const PRESETS = [
         prizes: [0, 0, 0, 0, 0, 0, 1, 5, 10, 50, 250],
         note: 'Low cost, high engagement (All split)',
         prizeModes: null  // null means all scores use 'split' mode
+    },
+    {
+        id: 'vip_p6',
+        label: 'VIP Pick 6',
+        questions: 6,
+        oddsPerQuestion: 8.50,
+        prizes: [0, 25, 50, 100, 1000, 10000, 1000000],
+        note: '6/6 $1,000,000; 5/6 $100,000 (Split top score only)',
+        prizeModes: ['guaranteed', 'guaranteed', 'guaranteed', 'guaranteed', 'guaranteed', 'guaranteed', 'split']
     }
 
     // ADD YOUR CUSTOM PRESETS BELOW - Just copy one of the examples above and modify:
@@ -90,7 +99,6 @@ const UNIFORM_ODDS_PRESETS = [
     { value: 1.50, label: '66% (1.50)' },
     { value: 1.67, label: '60% (1.67)' },
     { value: 1.82, label: '55% (1.82)' },
-    { value: 2.00, label: '50% (2.00)' },
     { value: 2.00, label: '50% (2.00)' },
     { value: 2.50, label: '40% (2.50)' },
     { value: 3.00, label: '33.3% (3.00)' },
