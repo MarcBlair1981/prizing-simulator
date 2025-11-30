@@ -62,7 +62,7 @@ const PRESETS = [
     },
     {
         id: 'EPL 10Q Coupon',
-        label: 'Coupon 10Q • 2.00',
+        label: 'Coupon 10Q',
         questions: 10,
         oddsPerQuestion: 1.80,
         prizes: [0, 0, 0, 0, 0.1, 0.5, 1, 2, 100, 250, 1000],
@@ -122,6 +122,7 @@ const GAME_TEMPLATES = [
     { id: 'gcc9', label: 'Goals, Corners, Cards (9Q)', questions: 9, text: 'Prediction', odds: 4 },
     { id: 'nfl', label: "NFL Pick'em", questions: 10, text: 'Will the Chiefs win by more than 6?', odds: 1.92 }
 ];
+
 
 
 
