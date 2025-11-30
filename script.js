@@ -205,7 +205,7 @@ function fmtImplied(prob) {
   if (odds > 100) return String(Math.round(odds));
   return odds.toFixed(2);
 }
-function fmtMoney(v) { return '$' + Number(v || 0).toLocaleString(); }
+function fmtMoney(v) { return '$' + Number(v || 0).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 }); }
 function fmtUsers(raw) {
   if (!isFinite(raw)) return '—';
   return raw < 1 ? raw.toFixed(2) : Math.round(raw).toLocaleString();
@@ -876,3 +876,4 @@ document.getElementById('export').addEventListener('click', () => {
   status(CONFIG.msgExported);
 });
 toggleImplied.addEventListener('change', () => { showImplied = toggleImplied.checked; render(); });
+
