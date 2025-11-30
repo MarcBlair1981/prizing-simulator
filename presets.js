@@ -61,13 +61,13 @@ const PRESETS = [
         prizeModes: ['guaranteed', 'guaranteed', 'guaranteed', 'guaranteed', 'guaranteed', 'guaranteed', 'split']
     },
     {
-        id: 'budget_friendly_10q',
-        label: 'Budget Friendly 10Q • 2.00',
+        id: 'EPL 10Q Coupon',
+        label: 'Coupon 10Q • 2.00',
         questions: 10,
-        oddsPerQuestion: 2.00,
-        prizes: [0, 0, 0, 0, 0, 0, 1, 5, 10, 50, 250],
-        note: 'Low cost, high engagement (All split)',
-        prizeModes: null  // null means all scores use 'split' mode
+        oddsPerQuestion: 1.80,
+        prizes: [0, 0, 0, 0, 0.1, 0.5, 1, 2, 100, 250, 1000],
+        note: '10Q Coupon $1.60 cpu',
+        prizeModes: ['split', 'split', 'split', 'split', 'guaranteed', 'guaranteed', 'guaranteed', 'guaranteed', 'split', 'split', 'split']
     },
     {
         id: 'vip_p6',
@@ -122,5 +122,6 @@ const GAME_TEMPLATES = [
     { id: 'gcc9', label: 'Goals, Corners, Cards (9Q)', questions: 9, text: 'Prediction', odds: 4 },
     { id: 'nfl', label: "NFL Pick'em", questions: 10, text: 'Will the Chiefs win by more than 6?', odds: 1.92 }
 ];
+
 
 
