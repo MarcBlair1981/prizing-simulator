@@ -35,7 +35,7 @@ const PRESETS = [
 
     {
         id: '8Q Football Predictor',
-        label: '8Q Football Predictor)',
+        label: '8Q Football Predictor',
         questions: 8,
         oddsPerQuestion: 4.80,
         prizes: [0, 0, 0, 1, 5, 25, 250, 1000, 25000],
@@ -123,6 +123,7 @@ const GAME_TEMPLATES = [
     { id: 'gcc9', label: 'Goals, Corners, Cards (9Q)', questions: 9, text: 'Prediction', odds: 4 },
     { id: 'nfl', label: "NFL Pick'em", questions: 10, text: 'Will the Chiefs win by more than 6?', odds: 1.92 }
 ];
+
 
 
 
