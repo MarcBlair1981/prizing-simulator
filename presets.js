@@ -43,13 +43,13 @@ const PRESETS = [
         prizeModes: ['guaranteed', 'guaranteed', 'guaranteed', 'guaranteed', 'guaranteed', 'guaranteed', 'guaranteed', 'split', 'split']
     },
     {
-        id: 'soccer5_easy',
-        label: 'Soccer 5 • 2.50 (Easy)',
-        questions: 5,
-        oddsPerQuestion: 2.50,
-        prizes: [0, 0, 5, 25, 100, 500],
-        note: '5/5 $500; 4/5 $100; 3/5 $25 (All guaranteed)',
-        prizeModes: ['guaranteed', 'guaranteed', 'guaranteed', 'guaranteed', 'guaranteed', 'guaranteed']
+        id: 'Daily Goals 6Q',
+        label: 'Daily Goals 6Q',
+        questions: 6,
+        oddsPerQuestion: 4.00,
+        prizes: [0, 0, 0.5, 1, 5, 25, 500],
+        note: '6/6 $500; 5/6 $25; 4/6 $5',
+        prizeModes: ['guaranteed', 'guaranteed', 'guaranteed', 'guaranteed', 'guaranteed', 'split']
     },
     {
         id: 'highstakes_pick6',
@@ -123,6 +123,7 @@ const GAME_TEMPLATES = [
     { id: 'gcc9', label: 'Goals, Corners, Cards (9Q)', questions: 9, text: 'Prediction', odds: 4 },
     { id: 'nfl', label: "NFL Pick'em", questions: 10, text: 'Will the Chiefs win by more than 6?', odds: 1.92 }
 ];
+
 
 
 
