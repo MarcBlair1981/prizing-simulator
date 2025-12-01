@@ -34,13 +34,13 @@ const PRESETS = [
     // ===== EXAMPLE PRESETS BELOW - COPY AND MODIFY THESE =====
 
     {
-        id: 'quiz8_medium',
-        label: 'Quiz 8 (Medium Difficulty)',
+        id: '8Q Football Predictor',
+        label: '8Q Football Predictor)',
         questions: 8,
         oddsPerQuestion: 4.80,
-        prizes: [0, 0, 0, 5, 10, 50, 250, 1000, 25000],
-        note: '8/8 $25,000; 7/8 $1,000; 6/8 $250 (Split top 3)',
-        prizeModes: ['guaranteed', 'guaranteed', 'guaranteed', 'guaranteed', 'guaranteed', 'guaranteed', 'split', 'split', 'split']
+        prizes: [0, 0, 0, 1, 5, 25, 250, 1000, 25000],
+        note: '8/8 $25,000; 7/8 $1,000; 6/8 $250',
+        prizeModes: ['guaranteed', 'guaranteed', 'guaranteed', 'guaranteed', 'guaranteed', 'guaranteed', 'guaranteed', 'split', 'split']
     },
     {
         id: 'soccer5_easy',
@@ -123,6 +123,7 @@ const GAME_TEMPLATES = [
     { id: 'gcc9', label: 'Goals, Corners, Cards (9Q)', questions: 9, text: 'Prediction', odds: 4 },
     { id: 'nfl', label: "NFL Pick'em", questions: 10, text: 'Will the Chiefs win by more than 6?', odds: 1.92 }
 ];
+
 
 
 
