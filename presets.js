@@ -49,7 +49,7 @@ const PRESETS = [
         oddsPerQuestion: 4.00,
         prizes: [0, 0, 0.5, 1, 5, 25, 500],
         note: '6/6 $500; 5/6 $25; 4/6 $5',
-        prizeModes: ['guaranteed', 'guaranteed', 'guaranteed', 'guaranteed', 'guaranteed', 'split']
+        prizeModes: ['guaranteed', 'guaranteed', 'guaranteed', 'guaranteed', 'guaranteed', 'split','split']
     },
     {
         id: 'highstakes_pick6',
@@ -123,6 +123,7 @@ const GAME_TEMPLATES = [
     { id: 'gcc9', label: 'Goals, Corners, Cards (9Q)', questions: 9, text: 'Prediction', odds: 4 },
     { id: 'nfl', label: "NFL Pick'em", questions: 10, text: 'Will the Chiefs win by more than 6?', odds: 1.92 }
 ];
+
 
 
 
