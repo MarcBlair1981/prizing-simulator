@@ -103,6 +103,7 @@ const UNIFORM_ODDS_PRESETS = [
     { value: 2.50, label: '40% (2.50)' },
     { value: 3.00, label: '33.3% (3.00)' },
     { value: 4.00, label: '25% (4.00)' },
+    { value: 4.80, label: '21% (4.80)' },
     { value: 6.00, label: '16.7% (6.00)' },
     { value: 8.50, label: '11.8% (8.50) - Pick6 default' },
     { value: 10.00, label: '10% (10.00)' },
@@ -122,6 +123,7 @@ const GAME_TEMPLATES = [
     { id: 'gcc9', label: 'Goals, Corners, Cards (9Q)', questions: 9, text: 'Prediction', odds: 4 },
     { id: 'nfl', label: "NFL Pick'em", questions: 10, text: 'Will the Chiefs win by more than 6?', odds: 1.92 }
 ];
+
 
 
 
