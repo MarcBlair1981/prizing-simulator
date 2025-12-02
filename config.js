@@ -26,14 +26,14 @@ const CONFIG = {
   btnLoadCSV: "Load CSV",
   showImpliedLabel: "Show Implied Odds",
 
-  bulkOperationsLabel: "Operations",
+  bulkOperationsLabel: "Odds",
   btnApplyUniform: "Apply Odds",
   btnCloneTop: "Clone Top Row to All",
 
   paytablePresetsLabel: "Paytable Presets",
   applyStructureLabel: "Apply structure (N & odds)",
   btnPreview: "Preview",
-  btnApply: "Apply",
+  btnApply: "Apply Odds",
 
   // Questions List (Card 3)
   questionsListLabel: "Questions (type to edit; odds = decimal for optimal pick)",
@@ -79,3 +79,4 @@ const CONFIG = {
   msgCSVLoaded: "Loaded {0} questions from CSV.",
   msgCSVError: "Error reading CSV: {0}"
 };
+
