@@ -31,9 +31,9 @@ const CONFIG = {
   btnCloneTop: "Clone Top Row to All",
 
   paytablePresetsLabel: "Paytable Presets",
-  applyStructureLabel: "Apply structure (N & odds)",
+  applyStructureLabel: "Apply Structure",
   btnPreview: "Preview",
-  btnApply: "Apply Odds",
+  btnApply: "Apply Paytable",
 
   // Questions List (Card 3)
   questionsListLabel: "Questions (type to edit; odds = decimal for optimal pick)",
@@ -79,4 +79,5 @@ const CONFIG = {
   msgCSVLoaded: "Loaded {0} questions from CSV.",
   msgCSVError: "Error reading CSV: {0}"
 };
+
 
