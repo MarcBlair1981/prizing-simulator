@@ -83,7 +83,7 @@ const PRESETS = [
         label: 'MMA 10Q Coupon',
         questions: 10,
         oddsPerQuestion: 1.80,
-        prizes: [0, 0, 0, 0, 0.5, 1, 2, 10, 250, 1000],
+        prizes: [0, 0, 0, 0, 0, 0.5, 1, 2, 10, 250, 1000],
         note: '10/10 $1,000; 9/10 $250 (Split Cash Top Two)',
         prizeModes: ['split', 'split', 'guaranteed', 'guaranteed', 'guaranteed', 'guaranteed', 'guaranteed', 'guaranteed', 'split', 'split', 'split']
     },
@@ -132,6 +132,7 @@ const GAME_TEMPLATES = [
     { id: 'gcc9', label: 'Goals, Corners, Cards (9Q)', questions: 9, text: 'Prediction', odds: 4 },
     { id: 'nfl', label: "NFL Pick'em", questions: 10, text: 'Will the Chiefs win by more than 6?', odds: 1.92 }
 ];
+
 
 
 
