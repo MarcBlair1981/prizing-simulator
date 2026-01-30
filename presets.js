@@ -17,6 +17,15 @@ const PRESETS = [
         label: 'Pick6 • 8.50 (Split Top 2)',
         questions: 6,
         oddsPerQuestion: 8.50,
+        prizes: [0, 0.5, 5, 25, 250],
+        note: 'Top score (4/4) is Split. Others are Guaranteed.',
+        prizeModes: ['guaranteed', 'guaranteed', 'guaranteed', 'guaranteed', 'split']
+    },
+   {
+        id: 'pick6_split_top1',
+        label: 'Pick6 • 7.50 (Split Top 1)',
+        questions: 4,
+        oddsPerQuestion: 7.50,
         prizes: [0, 0, 10, 20, 100, 1000, 10000],
         note: 'Top two scores (6/6, 5/6) are Split. Others are Guaranteed.',
         prizeModes: ['guaranteed', 'guaranteed', 'guaranteed', 'guaranteed', 'guaranteed', 'split', 'split']
@@ -132,6 +141,7 @@ const GAME_TEMPLATES = [
     { id: 'gcc9', label: 'Goals, Corners, Cards (9Q)', questions: 9, text: 'Prediction', odds: 4 },
     { id: 'nfl', label: "NFL Pick'em", questions: 10, text: 'Will the Chiefs win by more than 6?', odds: 1.92 }
 ];
+
 
 
 
