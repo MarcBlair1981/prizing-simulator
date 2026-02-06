@@ -88,13 +88,22 @@ const PRESETS = [
         prizeModes: ['guaranteed', 'guaranteed', 'guaranteed', 'guaranteed', 'guaranteed', 'guaranteed', 'split']
     },
    {
+        id: 'Goals Corners Cards 9Q Binary',
+        label: 'GCC_9Q_1.85',
+        questions: 9,
+        oddsPerQuestion: 1.85,
+        prizes: [0, 0, 0, 0, 0, 0.1, 0.5, 2.5, 250, 500],
+        note: 'GCC perfect for WC',
+        prizeModes: ['guaranteed', 'guaranteed', 'guaranteed', 'guaranteed', 'guaranteed', 'guaranteed', 'guaranteed', 'guaranteed', 'split', 'split']
+    },
+   {
         id: 'MMA 10Q Coupon',
         label: 'MMA 10Q Coupon',
         questions: 10,
         oddsPerQuestion: 1.80,
         prizes: [0, 0, 0, 0, 0, 0.5, 1, 2, 10, 250, 1000],
         note: '10/10 $1,000; 9/10 $250 (Split Cash Top Two)',
-        prizeModes: ['split', 'split', 'guaranteed', 'guaranteed', 'guaranteed', 'guaranteed', 'guaranteed', 'guaranteed', 'split', 'split', 'split']
+        prizeModes: ['guaranteed', 'guaranteed', 'guaranteed', 'guaranteed', 'guaranteed', 'guaranteed', 'guaranteed', 'guaranteed', 'split', 'split', 'split']
     },
 
     // ADD YOUR CUSTOM PRESETS BELOW - Just copy one of the examples above and modify:
@@ -117,10 +126,12 @@ const UNIFORM_ODDS_PRESETS = [
     { value: 1.50, label: '66% (1.50)' },
     { value: 1.67, label: '60% (1.67)' },
     { value: 1.82, label: '55% (1.82)' },
+    { value: 1.85, label: '54% (1.85)' },
     { value: 2.00, label: '50% (2.00)' },
     { value: 2.50, label: '40% (2.50)' },
     { value: 3.00, label: '33.3% (3.00)' },
     { value: 4.00, label: '25% (4.00)' },
+    { value: 4.20, label: '23.8% (4.20)' },
     { value: 4.80, label: '21% (4.80)' },
     { value: 6.00, label: '16.7% (6.00)' },
     { value: 7.50, label: '13.33% (7.50)' },
@@ -142,6 +153,7 @@ const GAME_TEMPLATES = [
     { id: 'gcc9', label: 'Goals, Corners, Cards (9Q)', questions: 9, text: 'Prediction', odds: 4 },
     { id: 'nfl', label: "NFL Pick'em", questions: 10, text: 'Will the Chiefs win by more than 6?', odds: 1.92 }
 ];
+
 
 
 
