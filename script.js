@@ -950,6 +950,7 @@ function getReportData() {
     gameName: document.getElementById('gameName')?.value || 'F2P Game Projection',
     gameDescription: document.getElementById('gameDescription')?.value || '',
     includeSplashLogo: document.getElementById('includeSplashLogo')?.checked ?? true,
+    includeObservedCost: document.getElementById('includeObservedCost')?.checked ?? true,
 
     // Summary stats
     questions: rows.length,
@@ -1083,11 +1084,17 @@ document.getElementById('exportPDF')?.addEventListener('click', async () => {
 
     const costData = [
       ['Expected Cost', fmtMoney(data.expectedCost.toFixed(2))],
-      ['Expected Cost Per User', fmtMoney(data.expectedCostPerUser.toFixed(2))],
-      ['Observed Cost Ratio', data.observedCostRatio.toFixed(2)],
-      ['Expected Cost (Observed)', fmtMoney(data.expectedCostObserved.toFixed(2))],
-      ['Expected Cost Per User (Observed)', fmtMoney(data.expectedCostPerUserObserved.toFixed(2))]
+      ['Expected Cost Per User', fmtMoney(data.expectedCostPerUser.toFixed(2))]
     ];
+
+    // Only include observed cost params if checkbox is checked
+    if (data.includeObservedCost) {
+      costData.push(
+        ['Observed Cost Ratio', data.observedCostRatio.toFixed(2)],
+        ['Expected Cost (Observed)', fmtMoney(data.expectedCostObserved.toFixed(2))],
+        ['Expected Cost Per User (Observed)', fmtMoney(data.expectedCostPerUserObserved.toFixed(2))]
+      );
+    }
 
     doc.autoTable({
       startY: yPos,
@@ -1214,9 +1221,13 @@ document.getElementById('exportCSV')?.addEventListener('click', () => {
     csv += 'COST ANALYSIS\n';
     csv += `Expected Cost,${data.expectedCost.toFixed(2)}\n`;
     csv += `Expected Cost Per User,${data.expectedCostPerUser.toFixed(2)}\n`;
-    csv += `Observed Cost Ratio,${data.observedCostRatio}\n`;
-    csv += `Expected Cost (Observed),${data.expectedCostObserved.toFixed(2)}\n`;
-    csv += `Expected Cost Per User (Observed),${data.expectedCostPerUserObserved.toFixed(2)}\n`;
+
+    // Only include observed cost params if checkbox is checked
+    if (data.includeObservedCost) {
+      csv += `Observed Cost Ratio,${data.observedCostRatio}\n`;
+      csv += `Expected Cost (Observed),${data.expectedCostObserved.toFixed(2)}\n`;
+      csv += `Expected Cost Per User (Observed),${data.expectedCostPerUserObserved.toFixed(2)}\n`;
+    }
     csv += '\n';
 
     // Distribution table
