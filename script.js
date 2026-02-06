@@ -136,6 +136,7 @@ const statusEl = document.getElementById('status');
 const tt = document.getElementById('tt');
 // const uniformOdds = document.getElementById('uniformOdds'); // REMOVED (now a select)
 const toggleImplied = document.getElementById('toggleImplied');
+const observedCostRatioInput = document.getElementById('observedCostRatio');
 
 /* NEW: Preset UI refs */
 const presetSelect = document.getElementById('presetSelect');
@@ -352,6 +353,14 @@ function drawDistributionTable(pmf) {
   // Update the new stat cards
   document.getElementById('expectedCost').textContent = fmtMoney(totals.toFixed(2));
   document.getElementById('costPerUser').textContent = fmtMoney(costPerUser.toFixed(2));
+
+  // Calculate and display Observed Cost values
+  const observedCostRatio = Number(observedCostRatioInput?.value) || 1.0;
+  const expectedCostObserved = totals * observedCostRatio;
+  const costPerUserObserved = costPerUser * observedCostRatio;
+
+  document.getElementById('expectedCostObserved').textContent = fmtMoney(expectedCostObserved.toFixed(2));
+  document.getElementById('costPerUserObserved').textContent = fmtMoney(costPerUserObserved.toFixed(2));
 
   // Save prize edits
   distTbl.querySelectorAll('input[type=number][data-k]').forEach(inp => {
@@ -650,6 +659,7 @@ document.getElementById('applyUniform')?.addEventListener('click', applyUniformO
 document.getElementById('cloneTop')?.addEventListener('click', copyTopRowToAll);
 mult.addEventListener('input', render);
 participants.addEventListener('input', render);
+observedCostRatioInput?.addEventListener('input', render);
 qcount.addEventListener('input', () => { ensureCount(Math.max(1, Math.min(50, Number(qcount.value) || 1))); prizeByScore = []; prizeModeByScore = []; currentPresetId = null; });
 
 document.getElementById('previewPreset').addEventListener('click', previewPreset);
