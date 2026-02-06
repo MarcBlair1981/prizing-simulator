@@ -171,7 +171,96 @@
     <svg id="chart" class="chart" viewBox="0 0 1000 320" preserveAspectRatio="none"></svg>
     <div id="tt" class="tooltip" style="display:none"></div>
   </div>
+
+  <!-- Export Report Section -->
+  <div class="card"
+    style="margin-top:24px;border:2px solid rgba(96,165,250,0.4);background:linear-gradient(135deg, rgba(11,21,42,0.95) 0%, rgba(20,35,70,0.95) 100%)">
+    <div style="display:flex;align-items:center;gap:12px;margin-bottom:16px">
+      <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#60a5fa" stroke-width="2">
+        <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
+        <polyline points="14 2 14 8 20 8"></polyline>
+        <line x1="16" y1="13" x2="8" y2="13"></line>
+        <line x1="16" y1="17" x2="8" y2="17"></line>
+        <polyline points="10 9 9 9 8 9"></polyline>
+      </svg>
+      <div>
+        <div style="font-weight:600;font-size:16px;color:#fff">Export Client Report</div>
+        <div class="muted" style="font-size:12px">Generate a branded PDF or CSV report for your client</div>
+      </div>
+    </div>
+
+    <div class="grid g2" style="gap:16px">
+      <!-- Left Column: Branding -->
+      <div>
+        <div class="muted" style="margin-bottom:8px;font-weight:600;color:#60a5fa">Client Branding</div>
+
+        <div class="muted" style="margin-bottom:4px">Client Name</div>
+        <input id="clientName" type="text" placeholder="Enter client company name" style="margin-bottom:12px">
+
+        <div class="muted" style="margin-bottom:4px">Client Logo</div>
+        <div style="display:flex;gap:8px;align-items:center;margin-bottom:12px">
+          <button id="uploadClientLogo" class="btn" style="flex:1">Upload Logo</button>
+          <input type="file" id="clientLogoInput" accept="image/*" style="display:none">
+          <div id="clientLogoPreview"
+            style="width:40px;height:40px;border:1px dashed #3b506f;border-radius:8px;display:flex;align-items:center;justify-content:center;overflow:hidden">
+            <span class="muted" style="font-size:10px">No logo</span>
+          </div>
+        </div>
+
+        <label style="display:flex;align-items:center;gap:8px;cursor:pointer">
+          <input id="includeSplashLogo" type="checkbox" checked>
+          <span class="muted">Include SPLASH Tech logo</span>
+        </label>
+      </div>
+
+      <!-- Right Column: Game Info -->
+      <div>
+        <div class="muted" style="margin-bottom:8px;font-weight:600;color:#60a5fa">Game Information</div>
+
+        <div class="muted" style="margin-bottom:4px">Game Name / Title</div>
+        <input id="gameName" type="text" placeholder="e.g., Premier League Pick 9" style="margin-bottom:12px">
+
+        <div class="muted" style="margin-bottom:4px">Game Description</div>
+        <textarea id="gameDescription" placeholder="Describe the game format, rules, and any special conditions..."
+          style="width:100%;min-height:80px;background:#0b152a;color:var(--text);border:1px solid var(--line);border-radius:10px;padding:10px;resize:vertical;font-family:inherit"></textarea>
+      </div>
+    </div>
+
+    <div style="border-top:1px solid rgba(59,80,111,0.5);margin:20px 0 16px 0"></div>
+
+    <div style="display:flex;gap:12px;flex-wrap:wrap">
+      <button id="exportPDF" class="btn"
+        style="background:linear-gradient(135deg,#3b82f6,#1d4ed8);padding:12px 24px;font-weight:600;flex:1;min-width:200px">
+        <span style="display:flex;align-items:center;justify-content:center;gap:8px">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
+            <polyline points="14 2 14 8 20 8"></polyline>
+            <path d="M12 18v-6"></path>
+            <path d="M9 15l3 3 3-3"></path>
+          </svg>
+          Export PDF Report
+        </span>
+      </button>
+      <button id="exportCSV" class="btn"
+        style="background:linear-gradient(135deg,#10b981,#059669);padding:12px 24px;font-weight:600;flex:1;min-width:200px">
+        <span style="display:flex;align-items:center;justify-content:center;gap:8px">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
+            <polyline points="14 2 14 8 20 8"></polyline>
+            <line x1="8" y1="13" x2="16" y2="13"></line>
+            <line x1="8" y1="17" x2="16" y2="17"></line>
+          </svg>
+          Export CSV Data
+        </span>
+      </button>
+    </div>
+  </div>
+
 </div>
+
+<!-- jsPDF library for PDF generation -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.8.1/jspdf.plugin.autotable.min.js"></script>
 
 <script src="config.js"></script>
 <script src="presets.js"></script>

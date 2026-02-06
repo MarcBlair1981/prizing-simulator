@@ -887,3 +887,362 @@ document.getElementById('export').addEventListener('click', () => {
 });
 toggleImplied.addEventListener('change', () => { showImplied = toggleImplied.checked; render(); });
 
+/* ========== EXPORT REPORT FUNCTIONALITY ========== */
+
+// Client logo state
+let clientLogoDataUrl = null;
+
+// Logo upload handler
+document.getElementById('uploadClientLogo')?.addEventListener('click', () => {
+  document.getElementById('clientLogoInput').click();
+});
+
+document.getElementById('clientLogoInput')?.addEventListener('change', (e) => {
+  const file = e.target.files[0];
+  if (file) {
+    const reader = new FileReader();
+    reader.onload = (event) => {
+      clientLogoDataUrl = event.target.result;
+      const preview = document.getElementById('clientLogoPreview');
+      preview.innerHTML = `<img src="${clientLogoDataUrl}" style="max-width:100%;max-height:100%;object-fit:contain">`;
+    };
+    reader.readAsDataURL(file);
+  }
+});
+
+// Get all current report data
+function getReportData() {
+  const participantsNum = Number(participants.value) || 0;
+  const m = Number(mult.value);
+  const ps = rows.map(r => 1.0 / (Math.max(1.01, r.odds) * m));
+
+  let combined = 1.0;
+  for (const p of ps) combined *= p;
+
+  const pmf = poissonBinomialPMF(ps);
+  const N = pmf.length ? pmf.length - 1 : 0;
+
+  // Calculate totals
+  let totalExpectedPrize = 0;
+  const distributionData = pmf.map((prob, k) => {
+    const expectedUsers = participantsNum * prob;
+    const prizeVal = prizeByScore[k] ?? 0;
+    const modeVal = prizeModeByScore[k] || 'split';
+    const expectedPrize = expectedPrizeCost(prob, participantsNum, prizeVal, modeVal);
+    totalExpectedPrize += expectedPrize;
+
+    return {
+      score: `${k}/${N}`,
+      probability: (prob * 100).toFixed(2) + '%',
+      impliedOdds: prob > 0 ? (1 / prob).toFixed(2) : '—',
+      expectedUsers: expectedUsers < 1 ? expectedUsers.toFixed(2) : Math.round(expectedUsers).toLocaleString(),
+      prize: prizeVal,
+      payoutMode: modeVal === 'guaranteed' ? 'Guaranteed' : 'Split',
+      expectedPrize: expectedPrize
+    };
+  });
+
+  const observedRatio = Number(observedCostRatioInput?.value) || 1.0;
+  const costPerUser = participantsNum > 0 ? totalExpectedPrize / participantsNum : 0;
+
+  return {
+    clientName: document.getElementById('clientName')?.value || '',
+    gameName: document.getElementById('gameName')?.value || 'F2P Game Projection',
+    gameDescription: document.getElementById('gameDescription')?.value || '',
+    includeSplashLogo: document.getElementById('includeSplashLogo')?.checked ?? true,
+
+    // Summary stats
+    questions: rows.length,
+    participants: participantsNum,
+    jackpotChance: (combined * 100).toFixed(3) + '%',
+    jackpotOdds: combined > 0 ? Math.round(1 / combined).toLocaleString() : '—',
+    expectedPerfectWinners: Math.round(participantsNum * combined),
+
+    // Cost stats
+    expectedCost: totalExpectedPrize,
+    expectedCostPerUser: costPerUser,
+    observedCostRatio: observedRatio,
+    expectedCostObserved: totalExpectedPrize * observedRatio,
+    expectedCostPerUserObserved: costPerUser * observedRatio,
+
+    // Distribution table
+    distribution: distributionData,
+    totalExpectedPrize: totalExpectedPrize,
+
+    // Chart data for potential rendering
+    pmf: pmf,
+    N: N
+  };
+}
+
+// Export PDF
+document.getElementById('exportPDF')?.addEventListener('click', async () => {
+  try {
+    status('Generating PDF report...', 0);
+
+    const data = getReportData();
+    const { jsPDF } = window.jspdf;
+    const doc = new jsPDF('p', 'mm', 'a4');
+
+    const pageWidth = doc.internal.pageSize.getWidth();
+    const margin = 15;
+    let yPos = 15;
+
+    // Header with logos
+    const logoHeight = 15;
+    let logoX = margin;
+
+    // Client logo (left)
+    if (clientLogoDataUrl) {
+      try {
+        doc.addImage(clientLogoDataUrl, 'PNG', logoX, yPos, 25, logoHeight);
+        logoX += 30;
+      } catch (e) {
+        console.warn('Failed to add client logo:', e);
+      }
+    }
+
+    // SPLASH logo (right) - using text fallback
+    if (data.includeSplashLogo) {
+      doc.setFontSize(12);
+      doc.setTextColor(96, 165, 250);
+      doc.setFont('helvetica', 'bold');
+      doc.text('SPLASH Tech', pageWidth - margin, yPos + 10, { align: 'right' });
+      doc.setFontSize(8);
+      doc.setTextColor(150, 150, 150);
+      doc.setFont('helvetica', 'normal');
+      doc.text('Free-to-Play Projection Tools', pageWidth - margin, yPos + 15, { align: 'right' });
+    }
+
+    // Client name
+    if (data.clientName) {
+      doc.setFontSize(10);
+      doc.setTextColor(100, 100, 100);
+      doc.text(`Prepared for: ${data.clientName}`, logoX, yPos + 8);
+    }
+
+    yPos += logoHeight + 10;
+
+    // Title
+    doc.setFontSize(20);
+    doc.setTextColor(30, 30, 30);
+    doc.setFont('helvetica', 'bold');
+    doc.text(data.gameName, margin, yPos);
+    yPos += 10;
+
+    // Description
+    if (data.gameDescription) {
+      doc.setFontSize(10);
+      doc.setTextColor(80, 80, 80);
+      doc.setFont('helvetica', 'normal');
+      const descLines = doc.splitTextToSize(data.gameDescription, pageWidth - (2 * margin));
+      doc.text(descLines, margin, yPos);
+      yPos += (descLines.length * 5) + 5;
+    }
+
+    // Divider
+    doc.setDrawColor(200, 200, 200);
+    doc.line(margin, yPos, pageWidth - margin, yPos);
+    yPos += 8;
+
+    // Summary Stats Section
+    doc.setFontSize(14);
+    doc.setTextColor(30, 30, 30);
+    doc.setFont('helvetica', 'bold');
+    doc.text('Game Summary', margin, yPos);
+    yPos += 8;
+
+    // Stats grid
+    const statsData = [
+      ['Questions', data.questions.toString()],
+      ['Participants', data.participants.toLocaleString()],
+      ['Jackpot Chance', `${data.jackpotChance} (1 in ${data.jackpotOdds})`],
+      ['Expected Perfect Winners', data.expectedPerfectWinners.toLocaleString()]
+    ];
+
+    doc.autoTable({
+      startY: yPos,
+      head: [],
+      body: statsData,
+      theme: 'plain',
+      styles: { fontSize: 10, cellPadding: 2 },
+      columnStyles: {
+        0: { fontStyle: 'bold', cellWidth: 50, textColor: [80, 80, 80] },
+        1: { cellWidth: 80, textColor: [30, 30, 30] }
+      },
+      margin: { left: margin }
+    });
+
+    yPos = doc.lastAutoTable.finalY + 10;
+
+    // Cost Analysis Section
+    doc.setFontSize(14);
+    doc.setFont('helvetica', 'bold');
+    doc.text('Cost Analysis', margin, yPos);
+    yPos += 8;
+
+    const costData = [
+      ['Expected Cost', fmtMoney(data.expectedCost.toFixed(2))],
+      ['Expected Cost Per User', fmtMoney(data.expectedCostPerUser.toFixed(2))],
+      ['Observed Cost Ratio', data.observedCostRatio.toFixed(2)],
+      ['Expected Cost (Observed)', fmtMoney(data.expectedCostObserved.toFixed(2))],
+      ['Expected Cost Per User (Observed)', fmtMoney(data.expectedCostPerUserObserved.toFixed(2))]
+    ];
+
+    doc.autoTable({
+      startY: yPos,
+      head: [],
+      body: costData,
+      theme: 'striped',
+      styles: { fontSize: 10, cellPadding: 3 },
+      columnStyles: {
+        0: { fontStyle: 'bold', cellWidth: 60, textColor: [80, 80, 80] },
+        1: { cellWidth: 50, halign: 'right', textColor: [30, 30, 30] }
+      },
+      margin: { left: margin },
+      alternateRowStyles: { fillColor: [245, 247, 250] }
+    });
+
+    yPos = doc.lastAutoTable.finalY + 10;
+
+    // Distribution Table
+    doc.setFontSize(14);
+    doc.setFont('helvetica', 'bold');
+    doc.text('Prize Distribution Table', margin, yPos);
+    yPos += 8;
+
+    const distTableHead = [['Score', 'Probability', 'Implied Odds', 'Expected Users', 'Prize', 'Mode', 'Expected Prize']];
+    const distTableBody = data.distribution.map(row => [
+      row.score,
+      row.probability,
+      row.impliedOdds,
+      row.expectedUsers,
+      fmtMoney(row.prize),
+      row.payoutMode,
+      fmtMoney(row.expectedPrize.toFixed(2))
+    ]).reverse();
+
+    // Add totals row
+    distTableBody.push([
+      'TOTAL',
+      '100.00%',
+      '',
+      data.participants.toLocaleString(),
+      '',
+      'Total Expected:',
+      fmtMoney(data.totalExpectedPrize.toFixed(2))
+    ]);
+
+    doc.autoTable({
+      startY: yPos,
+      head: distTableHead,
+      body: distTableBody,
+      theme: 'striped',
+      styles: { fontSize: 8, cellPadding: 2, halign: 'center' },
+      headStyles: { fillColor: [59, 130, 246], textColor: 255, fontStyle: 'bold' },
+      columnStyles: {
+        0: { cellWidth: 18 },
+        1: { cellWidth: 22 },
+        2: { cellWidth: 22 },
+        3: { cellWidth: 28 },
+        4: { cellWidth: 22, halign: 'right' },
+        5: { cellWidth: 24 },
+        6: { cellWidth: 28, halign: 'right' }
+      },
+      margin: { left: margin, right: margin },
+      alternateRowStyles: { fillColor: [245, 247, 250] },
+      didParseCell: (data) => {
+        // Style totals row
+        if (data.row.index === distTableBody.length - 1) {
+          data.cell.styles.fontStyle = 'bold';
+          data.cell.styles.fillColor = [230, 240, 255];
+        }
+      }
+    });
+
+    // Footer
+    const pageCount = doc.internal.getNumberOfPages();
+    for (let i = 1; i <= pageCount; i++) {
+      doc.setPage(i);
+      doc.setFontSize(8);
+      doc.setTextColor(150, 150, 150);
+      doc.text(
+        `Generated on ${new Date().toLocaleDateString()} at ${new Date().toLocaleTimeString()} | Page ${i} of ${pageCount}`,
+        pageWidth / 2,
+        doc.internal.pageSize.getHeight() - 10,
+        { align: 'center' }
+      );
+    }
+
+    // Generate filename
+    const fileName = `${data.gameName.replace(/[^a-zA-Z0-9]/g, '_')}_${data.clientName ? data.clientName.replace(/[^a-zA-Z0-9]/g, '_') + '_' : ''}Report.pdf`;
+
+    doc.save(fileName);
+    status('PDF report downloaded successfully!');
+
+  } catch (error) {
+    console.error('PDF generation error:', error);
+    status('Error generating PDF. Please try again.');
+  }
+});
+
+// Export CSV
+document.getElementById('exportCSV')?.addEventListener('click', () => {
+  try {
+    const data = getReportData();
+
+    let csv = '';
+
+    // Header info
+    csv += 'F2P Game Projection Report\n';
+    csv += `Game Name,${data.gameName}\n`;
+    if (data.clientName) csv += `Client,${data.clientName}\n`;
+    if (data.gameDescription) csv += `Description,"${data.gameDescription.replace(/"/g, '""')}"\n`;
+    csv += `Generated,${new Date().toISOString()}\n`;
+    csv += '\n';
+
+    // Summary stats
+    csv += 'SUMMARY STATISTICS\n';
+    csv += `Questions,${data.questions}\n`;
+    csv += `Participants,${data.participants}\n`;
+    csv += `Jackpot Chance,${data.jackpotChance}\n`;
+    csv += `Jackpot Odds,1 in ${data.jackpotOdds}\n`;
+    csv += `Expected Perfect Winners,${data.expectedPerfectWinners}\n`;
+    csv += '\n';
+
+    // Cost analysis
+    csv += 'COST ANALYSIS\n';
+    csv += `Expected Cost,${data.expectedCost.toFixed(2)}\n`;
+    csv += `Expected Cost Per User,${data.expectedCostPerUser.toFixed(2)}\n`;
+    csv += `Observed Cost Ratio,${data.observedCostRatio}\n`;
+    csv += `Expected Cost (Observed),${data.expectedCostObserved.toFixed(2)}\n`;
+    csv += `Expected Cost Per User (Observed),${data.expectedCostPerUserObserved.toFixed(2)}\n`;
+    csv += '\n';
+
+    // Distribution table
+    csv += 'PRIZE DISTRIBUTION\n';
+    csv += 'Score,Probability %,Implied Odds,Expected Users,Prize,Payout Mode,Expected Prize\n';
+
+    data.distribution.slice().reverse().forEach(row => {
+      csv += `${row.score},${row.probability},${row.impliedOdds},${row.expectedUsers},${row.prize},${row.payoutMode},${row.expectedPrize.toFixed(2)}\n`;
+    });
+
+    csv += `TOTAL,100.00%,,${data.participants},,Total Expected Prize:,${data.totalExpectedPrize.toFixed(2)}\n`;
+
+    // Download
+    const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    const fileName = `${data.gameName.replace(/[^a-zA-Z0-9]/g, '_')}_${data.clientName ? data.clientName.replace(/[^a-zA-Z0-9]/g, '_') + '_' : ''}Data.csv`;
+    a.href = url;
+    a.download = fileName;
+    a.click();
+    URL.revokeObjectURL(url);
+
+    status('CSV data exported successfully!');
+
+  } catch (error) {
+    console.error('CSV export error:', error);
+    status('Error exporting CSV. Please try again.');
+  }
+});
