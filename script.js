@@ -117,6 +117,8 @@ function applyUiConfig() {
 let rows = [];
 let prizeByScore = [];          // prize values indexed by score k (0..N)
 let prizeModeByScore = [];      // payout mode per score ('split' | 'guaranteed')
+let prizeByPoints = [];         // prize values indexed by POINTS
+let prizeModeByPoints = [];     // payout mode per POINTS
 let showImplied = true;
 let currentPresetId = null;     // best-effort tracking
 
@@ -137,6 +139,7 @@ const tt = document.getElementById('tt');
 // const uniformOdds = document.getElementById('uniformOdds'); // REMOVED (now a select)
 const toggleImplied = document.getElementById('toggleImplied');
 const observedCostRatioInput = document.getElementById('observedCostRatio');
+const enableGamificationCheckbox = document.getElementById('enableGamification');
 
 /* NEW: Preset UI refs */
 const presetSelect = document.getElementById('presetSelect');
@@ -144,6 +147,14 @@ const applyStructure = document.getElementById('applyStructure');
 const previewPresetBtn = document.getElementById('previewPreset');
 const applyPresetBtn = document.getElementById('applyPreset');
 const presetPreview = document.getElementById('presetPreview');
+
+/* NEW: Gamification UI refs */
+const gamificationSection = document.getElementById('gamificationSection');
+const gamifiedCostEl = document.getElementById('gamifiedCost');
+const gamifiedCostPerUserEl = document.getElementById('gamifiedCostPerUser');
+const gamifiedDistTbl = document.getElementById('gamifiedDist');
+const gamifiedChart = document.getElementById('gamifiedChart');
+const gamifiedTt = document.getElementById('gamifiedTt');
 
 function status(msg, ms = 1600) { statusEl.textContent = msg; if (ms) { setTimeout(() => statusEl.textContent = '', ms); } }
 
@@ -198,14 +209,105 @@ function poissonBinomialPMF(ps) {
   return Array.from(dp);
 }
 
+/* GAMIFICATION LOGIC */
+function calculateGamifiedPMF(ps) {
+  // Config
+  const PT_CORRECT = 10;
+  const PT_JOKER = 5;
+  const PT_CAPTAIN_BONUS = 10; // Extra points on top of PT_CORRECT
+  const JOKER_THRESHOLD = 0.5; // Only use joker if p < 0.5
+
+  const n = ps.length;
+  // Identify Captain: Index with MAX probability
+  // Identify Joker: Index with MIN probability, IF p < threshold
+  // Captain cannot be Joker (Captain takes precedence as it's a confident pick)
+
+  let captainIdx = -1;
+  let maxP = -1;
+  ps.forEach((p, i) => {
+    if (p > maxP) { maxP = p; captainIdx = i; }
+  });
+
+  let jokerIdx = -1;
+  let minP = 2.0;
+  ps.forEach((p, i) => {
+    if (i !== captainIdx && p < minP) { minP = p; jokerIdx = i; }
+  });
+
+  // Decide if we actually use the joker
+  const useJoker = (jokerIdx !== -1 && minP < JOKER_THRESHOLD);
+  const finalJokerIdx = useJoker ? jokerIdx : -1;
+
+  // DP State: dp[points] = prob
+  // Max points = N * 10 + 10 (Captain). (Assuming no joker reduces max).
+  // Safe max size = (N+2)*10
+  const maxPoints = (n * 10) + 10;
+  // Map for sparse-ish array? Just use array, size is small (~500)
+  let dp = new Float64Array(maxPoints + 1);
+  dp[0] = 1.0;
+
+  for (let i = 0; i < n; i++) {
+    const p = ps[i];
+    const newDp = new Float64Array(maxPoints + 1);
+
+    // Transitions
+    // If Joker: Guaranteed 5 points.
+    // If Captain: p -> +20 pts, (1-p) -> 0 pts
+    // Else: p -> +10 pts, (1-p) -> 0 pts
+
+    if (i === finalJokerIdx) {
+      // Deterministic shift by PT_JOKER
+      for (let s = 0; s <= maxPoints; s++) {
+        if (dp[s] > 0) {
+          if (s + PT_JOKER <= maxPoints) {
+            newDp[s + PT_JOKER] += dp[s];
+          }
+        }
+      }
+    } else if (i === captainIdx) {
+      // Captain
+      const ptsWin = PT_CORRECT + PT_CAPTAIN_BONUS; // 20
+      for (let s = 0; s <= maxPoints; s++) {
+        if (dp[s] > 0) {
+          // Win
+          if (s + ptsWin <= maxPoints) newDp[s + ptsWin] += dp[s] * p;
+          // Loss
+          newDp[s] += dp[s] * (1 - p);
+        }
+      }
+    } else {
+      // Standard
+      const ptsWin = PT_CORRECT; // 10
+      for (let s = 0; s <= maxPoints; s++) {
+        if (dp[s] > 0) {
+          // Win
+          if (s + ptsWin <= maxPoints) newDp[s + ptsWin] += dp[s] * p;
+          // Loss
+          newDp[s] += dp[s] * (1 - p);
+        }
+      }
+    }
+    dp = newDp;
+  }
+
+  // Convert to array of objects { score: int, prob: float }
+  // Only keep non-zero entries? Or just return the array
+  // For compatibility with render functions, let's return a special object or just the array.
+  // The existing render expects an array where index=score. 
+  // We can return the array, index=points.
+  return Array.from(dp);
+}
+
 /* Formatting */
 function fmtPct(prob) { return (prob * 100).toFixed(2); }
 function fmtImplied(prob) {
   if (prob <= 0) return '—';
   const odds = 1 / prob;
   if (odds > 100) return String(Math.round(odds));
+  if (odds > 100) return String(Math.round(odds));
   return odds.toFixed(2);
 }
+function fmtPoints(pt) { return pt === 1 ? '1 pt' : pt + ' pts'; }
 function fmtMoney(v) { return '$' + Number(v || 0).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 }); }
 function fmtUsers(raw) {
   if (!isFinite(raw)) return '—';
@@ -245,48 +347,60 @@ function render() {
   const expectedPerfectUsers = participantsNum * combined;
   winners.textContent = fmtUsers(expectedPerfectUsers);
 
-  const pmf = poissonBinomialPMF(ps);
-  drawDistributionTable(pmf);
-  drawScoreChartWithCDF(pmf, participantsNum);
+  // ALWAYS Standard Calc
+  const pmfStandard = poissonBinomialPMF(ps);
+  drawDistributionTable(pmfStandard, distTbl, chart, tt, prizeByScore, prizeModeByScore, false);
+
+  // OPTIONAL Gamified Calc
+  const isGamified = enableGamificationCheckbox?.checked || false;
+  if (isGamified && gamificationSection) {
+    gamificationSection.classList.remove('hidden');
+    // Ensure we have a valid PMF even if calculation fails
+    let pmfGamified;
+    try {
+      pmfGamified = calculateGamifiedPMF(ps);
+    } catch (e) {
+      console.error("Gamification Calc Error", e);
+      pmfGamified = [1.0]; // Fallback
+    }
+    drawDistributionTable(pmfGamified, gamifiedDistTbl, gamifiedChart, gamifiedTt, prizeByPoints, prizeModeByPoints, true);
+  } else if (gamificationSection) {
+    gamificationSection.classList.add('hidden');
+  }
 }
 
 /* Dist table + prizes */
-function drawDistributionTable(pmf) {
-  const N = pmf.length ? pmf.length - 1 : 0;
+/* Dist table + prizes */
+function drawDistributionTable(pmf, tableEl, chartEl, ttEl, prizeArr, modeArr, isGamified) {
+  // If gamified, pmf index = points.
+  // If not, pmf index = wins.
+
+  const N = rows.length; // Context for "Score k/N" if not gamified
   const participantsNum = Number(participants.value);
 
-  // Keep prize array length in sync with PMF length, preserving edits
-  if (prizeByScore.length !== pmf.length) {
-    const old = prizeByScore.slice();
-    const oldModes = prizeModeByScore.slice();
-    prizeByScore = Array(pmf.length).fill(null);
-    prizeModeByScore = Array(pmf.length).fill('split');
-    for (let i = 0; i < Math.min(old.length, prizeByScore.length); i++) { prizeByScore[i] = old[i]; }
-    for (let i = 0; i < Math.min(oldModes.length, prizeModeByScore.length); i++) { prizeModeByScore[i] = oldModes[i] || 'split'; }
+  let rowsToRender = [];
+  if (isGamified) {
+    pmf.forEach((p, score) => {
+      if (p > 1e-9) rowsToRender.push({ k: score, p: p });
+    });
+    // Sort desc by score
+    rowsToRender.sort((a, b) => b.k - a.k);
+  } else {
+    // Classic 0..N
+    for (let k = 0; k < pmf.length; k++) rowsToRender.push({ k: k, p: pmf[k] });
+    rowsToRender.reverse();
   }
 
-  // On very first load only, default prizes if none are set and N==8 (legacy)
-  if (N === 8 && prizeByScore.every(v => v == null)) {
-    prizeByScore[8] = 25000;
-    prizeByScore[7] = 1000;
-    prizeByScore[6] = 250;
-    prizeByScore[5] = 10;
-    prizeByScore[4] = 5;
-    prizeByScore[3] = 1;
-    for (let k = 0; k <= 8; k++) if (prizeByScore[k] == null) prizeByScore[k] = 0;
-    prizeModeByScore = Array(pmf.length).fill('split');
-  }
+  const maxK = rowsToRender.length > 0 ? rowsToRender[0].k : 0;
+  // Ensure prize array is big enough
+  while (prizeArr.length <= maxK) { prizeArr.push(0); modeArr.push('split'); }
 
-  // Fill remaining nulls with 0
-  for (let k = 0; k < prizeByScore.length; k++) {
-    if (prizeByScore[k] == null) prizeByScore[k] = 0;
-    if (!prizeModeByScore[k]) prizeModeByScore[k] = 'split';
-  }
+  const scoreHeader = isGamified ? 'Points' : CONFIG.tableHeaderScore;
 
-  const impliedTh = `<th id="impliedHead" class="${showImplied ? '' : 'hidden'}">${CONFIG.tableHeaderImplied}</th>`;
+  const impliedTh = `<th class="${showImplied ? '' : 'hidden'}">${CONFIG.tableHeaderImplied}</th>`;
   const head = `
     <tr>
-      <th>${CONFIG.tableHeaderScore}</th>
+      <th>${scoreHeader}</th>
       <th>${CONFIG.tableHeaderProb}</th>
       ${impliedTh}
       <th>${CONFIG.tableHeaderUsers} ${participantsNum.toLocaleString()}</th>
@@ -295,18 +409,23 @@ function drawDistributionTable(pmf) {
       <th>${CONFIG.tableHeaderExpPrize}</th>
     </tr>`;
 
-  const body = pmf.map((prob, k) => {
+  const body = rowsToRender.map(item => {
+    const k = item.k;
+    const prob = item.p;
+
+    const label = isGamified ? fmtPoints(k) : `${k}/${N}`;
+
     const rawUsers = participantsNum * prob;
     const usersDisplay = fmtUsers(rawUsers);
     const pct = fmtPct(prob);
     const implied = fmtImplied(prob);
     const impliedTd = `<td class="${showImplied ? '' : 'hidden'}">${implied}</td>`;
-    const prizeVal = prizeByScore[k] ?? 0;
-    const modeVal = prizeModeByScore[k] || 'split';
+    const prizeVal = prizeArr[k] ?? 0;
+    const modeVal = modeArr[k] || 'split';
     const expectedPrize = expectedPrizeCost(prob, participantsNum, prizeVal, modeVal);
 
     return `<tr>
-      <td>${k}/${N}</td>
+      <td>${label}</td>
       <td>${pct}%</td>
       ${impliedTd}
       <td>${usersDisplay}</td>
@@ -319,80 +438,194 @@ function drawDistributionTable(pmf) {
       </td>
       <td>${fmtMoney(expectedPrize.toFixed(2))}</td>
     </tr>`;
-  }).reverse().join('');
+  }).join('');
 
-  // Totals row for expected prizes
-  const totals = pmf.reduce((acc, prob, idx) => {
-    const prizeVal = prizeByScore[idx] ?? 0;
-    const modeVal = prizeModeByScore[idx] || 'split';
+  // Totals
+  const totals = rowsToRender.reduce((acc, item) => {
+    const k = item.k;
+    const prob = item.p;
+
+    // Explicit global check for gamified mode to avoid stale closure
+    let prizeVal = prizeArr[k] ?? 0;
+    let modeVal = modeArr[k] || 'split';
+
+    if (isGamified) {
+      prizeVal = (prizeByPoints && prizeByPoints[k]) ?? 0;
+      modeVal = (prizeModeByPoints && prizeModeByPoints[k]) ? prizeModeByPoints[k] : 'split';
+    }
+
     return acc + expectedPrizeCost(prob, participantsNum, prizeVal, modeVal);
   }, 0);
 
-  // NEW: Calculate totals for Probability % and Expected Users
-  const totalProbability = pmf.reduce((sum, prob) => sum + prob, 0);
-  const totalExpectedUsers = participantsNum; // The sum of expected users should perfectly equal the input participants
-
-  // MODIFIED: Inject total Probability % and Expected Users into the table foot
+  const totalProbability = rowsToRender.reduce((sum, item) => sum + item.p, 0);
+  const totalExpectedUsers = participantsNum * totalProbability;
   const costPerUser = participantsNum > 0 ? totals / participantsNum : 0;
+
   const foot = `
     <tr style="font-weight:700">
       <td style="text-align:left">${CONFIG.tableTotal}</td>
       <td>${fmtPct(totalProbability)}%</td>
       <td class="${showImplied ? '' : 'hidden'}"></td>
-      <td>${participantsNum.toLocaleString()}</td>
+      <td>${fmtUsers(totalExpectedUsers)}</td>
       <td colspan="2" style="text-align:right">${CONFIG.tableTotalExpPrize}</td>
       <td>${fmtMoney(totals.toFixed(2))}</td>
     </tr>
     <tr style="font-weight:700">
       <td colspan="6" style="text-align:right">Expected Cost Per User:</td>
       <td>${fmtMoney(costPerUser.toFixed(2))}</td>
-    </tr>`;
+    </tr>
+    ${isGamified ? '<tr><td colspan="7" style="text-align:right;font-size:0.85em;color:#9cadc4;padding-top:8px">* Calculation assumes that any user confident enough to use the Captaincy gets it correct.</td></tr>' : ''}
+    `;
 
-  distTbl.innerHTML = head + body + foot;
+  tableEl.innerHTML = head + body + foot;
 
-  // Update the new stat cards
-  document.getElementById('expectedCost').textContent = fmtMoney(totals.toFixed(2));
-  document.getElementById('costPerUser').textContent = fmtMoney(costPerUser.toFixed(2));
-
-  // Calculate and display Observed Cost values
-  const observedCostRatio = Number(observedCostRatioInput?.value) || 1.0;
-  const expectedCostObserved = totals * observedCostRatio;
-  const costPerUserObserved = costPerUser * observedCostRatio;
-
-  document.getElementById('expectedCostObserved').textContent = fmtMoney(expectedCostObserved.toFixed(2));
-  document.getElementById('costPerUserObserved').textContent = fmtMoney(costPerUserObserved.toFixed(2));
-
-  // Save prize edits
-  distTbl.querySelectorAll('input[type=number][data-k]').forEach(inp => {
+  // Attach listeners to NEW inputs
+  tableEl.querySelectorAll('input[type=number][data-k]').forEach(inp => {
     inp.addEventListener('input', () => {
       const k = Number(inp.getAttribute('data-k'));
-      prizeByScore[k] = Number(inp.value) || 0;
-      // Preset tracking becomes unknown after manual edit
-      currentPresetId = null;
-    });
-  });
+      const val = Number(inp.value) || 0;
 
-  distTbl.querySelectorAll('select[data-mode-k]').forEach(sel => {
-    sel.addEventListener('change', () => {
-      const k = Number(sel.getAttribute('data-mode-k'));
-      prizeModeByScore[k] = sel.value === 'guaranteed' ? 'guaranteed' : 'split';
-      currentPresetId = null;
+      // Update local ref (which is global ref)
+      prizeArr[k] = val;
+
+      // EXPLICITLY update global globals to be safe if closure is weird
+      if (isGamified) {
+        if (!prizeByPoints) prizeByPoints = [];
+        prizeByPoints[k] = val;
+      } else {
+        if (!prizeByScore) prizeByScore = [];
+        prizeByScore[k] = val;
+      }
+
+      // Re-render
       render();
     });
   });
+  tableEl.querySelectorAll('select[data-mode-k]').forEach(sel => {
+    sel.addEventListener('change', () => {
+      const k = Number(sel.getAttribute('data-mode-k'));
+      const val = sel.value;
+
+      modeArr[k] = val;
+
+      if (isGamified) {
+        if (!prizeModeByPoints) prizeModeByPoints = [];
+        prizeModeByPoints[k] = val;
+      } else {
+        if (!prizeModeByScore) prizeModeByScore = [];
+        prizeModeByScore[k] = val;
+        currentPresetId = null;
+      }
+      render();
+    });
+  });
+
+  // Update Top Stats if standard, or New Stats if Gamified
+  if (isGamified) {
+    gamifiedCostEl.textContent = fmtMoney(totals.toFixed(2));
+    gamifiedCostPerUserEl.textContent = fmtMoney(costPerUser.toFixed(2));
+
+    const observedCostRatio = Number(observedCostRatioInput?.value) || 1.0;
+    const expectedCostObserved = totals * observedCostRatio;
+    const costPerUserObserved = costPerUser * observedCostRatio;
+
+    document.getElementById('gamifiedCostObserved').textContent = fmtMoney(expectedCostObserved.toFixed(2));
+    document.getElementById('gamifiedCostPerUserObserved').textContent = fmtMoney(costPerUserObserved.toFixed(2));
+  } else {
+    document.getElementById('expectedCost').textContent = fmtMoney(totals.toFixed(2));
+    document.getElementById('costPerUser').textContent = fmtMoney(costPerUser.toFixed(2));
+
+    const observedCostRatio = Number(observedCostRatioInput?.value) || 1.0;
+    const expectedCostObserved = totals * observedCostRatio;
+    const costPerUserObserved = costPerUser * observedCostRatio;
+
+    document.getElementById('expectedCostObserved').textContent = fmtMoney(expectedCostObserved.toFixed(2));
+    document.getElementById('costPerUserObserved').textContent = fmtMoney(costPerUserObserved.toFixed(2));
+  }
+
+  // Draw chart
+  drawScoreChartWithCDF(pmf, participantsNum, chartEl, ttEl, isGamified);
+}
+
+/* 
+ * SIMPLIFIED GAMIFICATION LOGIC
+ * Assumes Captain is always correct for any given score > 0.
+ * Score K -> Points (10 * K + 10)
+ * (Except Score 0 -> 0)
+ */
+function calculateGamifiedPMF(ps) {
+  const pmfStandard = poissonBinomialPMF(ps);
+  const N = pmfStandard.length - 1;
+  const maxPoints = 10 * N + 10;
+
+  // Initialize sparse array
+  const pmfPoints = new Array(maxPoints + 1).fill(0);
+
+  pmfStandard.forEach((prob, k) => {
+    let pts = 0;
+    if (k > 0) {
+      // Score K > 0 implies at least one correct answer.
+      // We assume user puts Captain on a correct answer.
+      // Points = 10 * K + 10 (Captain Bonus)
+      pts = 10 * k + 10;
+    } else {
+      // Score 0. Captain must be wrong.
+      pts = 0;
+    }
+
+    if (pts <= maxPoints) {
+      pmfPoints[pts] += prob;
+    }
+  });
+
+  return pmfPoints;
 }
 
 /* Chart */
-function drawScoreChartWithCDF(pmf, participantsCount) {
+function drawScoreChartWithCDF(pmf, participantsCount, chartEl, ttEl, isGamified = false) {
   const w = 1000, h = 320, padL = 66, padR = 24, padT = 28, padB = 44;
-  chart.innerHTML = '';
-  const n = pmf.length ? pmf.length - 1 : 0;
-  const vals = pmf.map(p => p * 100);
-  const cdf = vals.map((_, i) => vals.slice(0, i + 1).reduce((a, b) => a + b, 0));
-  const maxv = Math.max(100, ...vals);
+  chartEl.innerHTML = '';
+
+  // Extract valid points (p > epsilon) to determine X-axis domain?
+  // Or just map indices. 
+  // If gamified, N = max points (index). 
+  // We want to compress the chart to valid indices if sparse?
+  // For simplicity, let's map the 'vals' array to only those with meaningful prob, OR
+  // if not gamified, use all.
+
+  // Actually, existing chart code maps 'pmf' directly where index=k.
+  // If gamified, k=points. max points=110. Array length=111.
+  // 111 bars is fit-able. Most will be 0.
+
+  // Let's filter to range [minScore, maxScore] where p > 0
+  let minK = 0, maxK = pmf.length - 1;
+  while (minK < pmf.length && pmf[minK] < 1e-9) minK++;
+  while (maxK >= 0 && pmf[maxK] < 1e-9) maxK--;
+  if (minK > maxK) { minK = 0; maxK = 0; }
+
+  // Slice pertinent range
+  const relevantPMF = pmf.slice(minK, maxK + 1);
+  const offset = minK;
+
+  const vals = relevantPMF.map(p => p * 100);
+  // CDF must be computed on FULL pmf then sliced, OR computed on slice?
+  // CDF is cumulative from 0.
+  // So cdf[k] = sum(p 0..k).
+  // Calculate CDF on full then slice values?
+  const fullCDF = [];
+  let acc = 0;
+  for (let p of pmf) { acc += p; fullCDF.push(acc * 100); }
+  const cdf = fullCDF.slice(minK, maxK + 1);
+
+  const n = vals.length - 1; // logical count of steps in window
+  const maxv = Math.max(10, ...vals); // Scale Y
   const bw = (w - padL - padR) / Math.max(1, n + 1);
   const plotH = h - padT - padB;
   const yFor = (v) => h - padB - (v / maxv) * plotH;
+
+  // Calculate step for X-axis labels to avoid overcrowding
+  // Target max ~20 labels
+  const step = Math.ceil((n + 1) / 20);
 
   const g = document.createElementNS('http://www.w3.org/2000/svg', 'g');
   const xAxis = document.createElementNS('http://www.w3.org/2000/svg', 'line');
@@ -419,16 +652,17 @@ function drawScoreChartWithCDF(pmf, participantsCount) {
     lbl.textContent = v.toFixed(0) + '%';
     g.appendChild(lbl);
   }
-  chart.appendChild(g);
+  chartEl.appendChild(g);
 
-  const step = Math.max(1, Math.ceil((n + 1) / 12));
-  const showTip = (k, e) => {
-    const r = chart.getBoundingClientRect();
+  const showTip = (k_rel, e) => {
+    const k = k_rel + offset; // absolute score/points
+    const r = chartEl.getBoundingClientRect();
     const users = fmtUsers(participantsCount * (pmf[k]));
-    tt.style.display = 'block'; tt.style.left = (e.clientX - r.left) + 'px'; tt.style.top = (e.clientY - r.top) + 'px';
-    tt.textContent = `Score ${k}/${n} • ${CONFIG.chartLegendPMF} ${vals[k].toFixed(4)}% • ${CONFIG.chartLegendCDF} ${cdf[k].toFixed(4)}% • ~${users} users`;
+    const label = isGamified ? fmtPoints(k) : `Score ${k}`;
+    ttEl.style.display = 'block'; ttEl.style.left = (e.clientX - r.left) + 'px'; ttEl.style.top = (e.clientY - r.top) + 'px';
+    ttEl.textContent = `${label} • ${CONFIG.chartLegendPMF} ${vals[k_rel].toFixed(4)}% • ${CONFIG.chartLegendCDF} ${cdf[k_rel].toFixed(4)}% • ~${users} users`;
   };
-  const hideTip = () => { tt.style.display = 'none'; };
+  const hideTip = () => { ttEl.style.display = 'none'; };
 
   for (let k = 0; k <= n; k++) {
     const val = vals[k], bh = (val / maxv) * plotH, x = padL + k * bw, y = h - padB - bh;
@@ -438,45 +672,48 @@ function drawScoreChartWithCDF(pmf, participantsCount) {
     rect.setAttribute('width', bw * 0.8); rect.setAttribute('height', Math.max(0, bh));
     rect.setAttribute('fill', '#60a5fa'); rect.setAttribute('rx', '2');
     rect.addEventListener('mouseenter', (e) => showTip(k, e)); rect.addEventListener('mousemove', (e) => showTip(k, e)); rect.addEventListener('mouseleave', hideTip);
-    chart.appendChild(rect);
+    chartEl.appendChild(rect);
 
     const hot = document.createElementNS('http://www.w3.org/2000/svg', 'rect');
     hot.setAttribute('x', x); hot.setAttribute('y', padT); hot.setAttribute('width', bw); hot.setAttribute('height', plotH);
     hot.setAttribute('fill', 'rgba(0,0,0,0)'); hot.style.pointerEvents = 'all';
     hot.addEventListener('mouseenter', (e) => showTip(k, e)); hot.addEventListener('mousemove', (e) => showTip(k, e)); hot.addEventListener('mouseleave', hideTip);
-    chart.appendChild(hot);
+    chartEl.appendChild(hot);
 
     if (k % step === 0 || k === n) {
       const lbl = document.createElementNS('http://www.w3.org/2000/svg', 'text');
       lbl.setAttribute('x', x + bw * 0.5); lbl.setAttribute('y', h - padB + 16);
       lbl.setAttribute('text-anchor', 'middle'); lbl.setAttribute('font-size', '12'); lbl.setAttribute('fill', '#c9d6ea');
-      lbl.textContent = k; chart.appendChild(lbl);
+      lbl.textContent = (k + offset) + (isGamified ? ' pts' : '');
+      chartEl.appendChild(lbl);
     }
   }
 
   const pts = cdf.map((cv, k) => `${padL + k * bw + bw * 0.5},${yFor(cv)}`).join(' ');
   const poly = document.createElementNS('http://www.w3.org/2000/svg', 'polyline');
-  poly.setAttribute('points', pts); poly.setAttribute('fill', 'none'); poly.setAttribute('stroke', '#e5e7eb'); poly.setAttribute('stroke-width', '2'); chart.appendChild(poly);
+  poly.setAttribute('points', pts); poly.setAttribute('fill', 'none'); poly.setAttribute('stroke', '#e5e7eb'); poly.setAttribute('stroke-width', '2'); chartEl.appendChild(poly);
   for (let k = 0; k <= n; k++) {
     const c = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
     c.setAttribute('cx', padL + k * bw + bw * 0.5); c.setAttribute('cy', yFor(cdf[k])); c.setAttribute('r', 3); c.setAttribute('fill', '#e5e7eb'); c.style.pointerEvents = 'all';
     c.addEventListener('mouseenter', (e) => showTip(k, e)); c.addEventListener('mousemove', (e) => showTip(k, e)); c.addEventListener('mouseleave', hideTip);
-    chart.appendChild(c);
+    chartEl.appendChild(c);
   }
 
   const xTitle = document.createElementNS('http://www.w3.org/2000/svg', 'text');
   xTitle.setAttribute('x', (w - padR + padL) / 2); xTitle.setAttribute('y', h - 8);
-  xTitle.setAttribute('text-anchor', 'middle'); xTitle.setAttribute('font-size', '12'); xTitle.setAttribute('fill', '#cfe3ff'); xTitle.textContent = CONFIG.chartXAxis; chart.appendChild(xTitle);
+  xTitle.setAttribute('text-anchor', 'middle'); xTitle.setAttribute('font-size', '12'); xTitle.setAttribute('fill', '#cfe3ff');
+  xTitle.textContent = isGamified ? 'Points' : CONFIG.chartXAxis;
+  chartEl.appendChild(xTitle);
 
   const yTitle = document.createElementNS('http://www.w3.org/2000/svg', 'text');
   yTitle.setAttribute('x', 16); yTitle.setAttribute('y', (h - padB + padT) / 2);
   yTitle.setAttribute('transform', `rotate(-90, 16, ${(h - padB + padT) / 2})`);
-  yTitle.setAttribute('font-size', '12'); yTitle.setAttribute('fill', '#cfe3ff'); yTitle.textContent = CONFIG.chartYAxis; chart.appendChild(yTitle);
+  yTitle.setAttribute('font-size', '12'); yTitle.setAttribute('fill', '#cfe3ff'); yTitle.textContent = CONFIG.chartYAxis; chartEl.appendChild(yTitle);
 
   const title = document.createElementNS('http://www.w3.org/2000/svg', 'text');
   title.setAttribute('x', padL); title.setAttribute('y', padT - 8);
   title.setAttribute('font-size', '13'); title.setAttribute('fill', '#ffffff'); title.setAttribute('font-weight', '700');
-  title.textContent = CONFIG.chartTitle; chart.appendChild(title);
+  title.textContent = CONFIG.chartTitle; chartEl.appendChild(title);
 
   const lgY = padT - 12, lgX = w - padR - 210;
   const barSwatch = document.createElementNS('http://www.w3.org/2000/svg', 'rect');
@@ -488,7 +725,7 @@ function drawScoreChartWithCDF(pmf, participantsCount) {
   lineSwatch.setAttribute('stroke', '#e5e7eb'); lineSwatch.setAttribute('stroke-width', '2');
   const lineLbl = document.createElementNS('http://www.w3.org/2000/svg', 'text');
   lineLbl.setAttribute('x', lgX + 156); lineLbl.setAttribute('y', lgY + 10); lineLbl.setAttribute('font-size', '12'); lineLbl.setAttribute('fill', '#cfe3ff'); lineLbl.textContent = CONFIG.chartLegendCDF;
-  chart.appendChild(barSwatch); chart.appendChild(barLbl); chart.appendChild(lineSwatch); chart.appendChild(lineLbl);
+  chartEl.appendChild(barSwatch); chartEl.appendChild(barLbl); chartEl.appendChild(lineSwatch); chartEl.appendChild(lineLbl);
 }
 
 /* Bulk ops (Updated to use select) */
@@ -644,6 +881,39 @@ function applyPreset() {
     }
   }
 
+  // MIRROR TO GAMIFICATION (Top-to-Bottom mapping)
+  // Logic: Map standard prizes (Score N, N-1...) to Point tiers (Max, Max-10...)
+  prizeByPoints = [];
+  prizeModeByPoints = [];
+  if (p.prizes.length === N + 1) {
+    // Determine max points (e.g. 110 for N=10)
+    // Formula: 10 * N + 10 (Captain Bonus) + 5 (Joker - usually irrelevant for top prizes)
+    // We'll align the Top Score Prize to (10 * N + 10)
+    const maxPoints = N * 10 + 10;
+
+    // We need a backing array large enough for the max points
+    // Let's make it large enough to hold the joker bonus + slop just in case
+    prizeByPoints = Array(maxPoints + 10).fill(0);
+    prizeModeByPoints = Array(maxPoints + 10).fill('split');
+
+    // Number of prize tiers in standard game
+    const scoreTiersCount = N + 1;
+
+    // Loop through ranks i = 0 (top) to ...
+    // i=0: Score N, Points Max
+    // i=1: Score N-1, Points Max-10
+    // ...
+    for (let i = 0; i < scoreTiersCount; i++) {
+      const scoreIndex = N - i;
+      const pointIndex = maxPoints - (i * 10);
+
+      if (pointIndex >= 0) {
+        prizeByPoints[pointIndex] = prizeByScore[scoreIndex];
+        prizeModeByPoints[pointIndex] = prizeModeByScore[scoreIndex];
+      }
+    }
+  }
+
   currentPresetId = p.id;
   renderRows(); // also re-renders everything
   status(CONFIG.msgAppliedPreset.replace('{0}', p.label));
@@ -660,7 +930,17 @@ document.getElementById('cloneTop')?.addEventListener('click', copyTopRowToAll);
 mult.addEventListener('input', render);
 participants.addEventListener('input', render);
 observedCostRatioInput?.addEventListener('input', render);
-qcount.addEventListener('input', () => { ensureCount(Math.max(1, Math.min(50, Number(qcount.value) || 1))); prizeByScore = []; prizeModeByScore = []; currentPresetId = null; });
+// Explicitly handle checkbox toggle to ensure UI updates immediately
+enableGamificationCheckbox?.addEventListener('change', () => {
+  const isGamified = enableGamificationCheckbox.checked;
+  if (gamificationSection) {
+    if (isGamified) gamificationSection.classList.remove('hidden');
+    else gamificationSection.classList.add('hidden');
+  }
+  render();
+});
+
+qcount.addEventListener('input', () => { ensureCount(Math.max(1, Math.min(50, Number(qcount.value) || 1))); prizeByScore = []; prizeModeByScore = []; prizeByPoints = []; prizeModeByPoints = []; currentPresetId = null; });
 
 document.getElementById('previewPreset').addEventListener('click', previewPreset);
 document.getElementById('applyPreset').addEventListener('click', applyPreset);
@@ -669,12 +949,13 @@ document.getElementById('applyPreset').addEventListener('click', applyPreset);
 const gameTemplateSelect = document.getElementById('gameTemplate');
 
 function initGameTemplates() {
+  if (!gameTemplateSelect) return;
   gameTemplateSelect.innerHTML = `<option value="">${CONFIG.selectTemplatePlaceholder}</option>` +
-    GAME_TEMPLATES.map(t => `<option value="${t.id}">${t.label}</option>`).join('');
+    (typeof GAME_TEMPLATES !== 'undefined' ? GAME_TEMPLATES.map(t => `<option value="${t.id}">${t.label}</option>`).join('') : '');
 
   gameTemplateSelect.addEventListener('change', () => {
     const tId = gameTemplateSelect.value;
-    const t = GAME_TEMPLATES.find(x => x.id === tId);
+    const t = typeof GAME_TEMPLATES !== 'undefined' ? GAME_TEMPLATES.find(x => x.id === tId) : null;
     if (!t) return;
 
     // Apply template - create N questions with template text and odds
@@ -687,6 +968,8 @@ function initGameTemplates() {
     // Reset other state
     prizeByScore = [];
     prizeModeByScore = [];
+    prizeByPoints = [];
+    prizeModeByPoints = [];
     currentPresetId = null;
 
     renderRows();
@@ -782,7 +1065,9 @@ function parseCSVLine(line) {
 
 /* Init */
 initPresetSelect();
+initPresetSelect();
 initUniformOddsSelect();
+initGameTemplates();
 initGameTemplates();
 firstLoadMaybeApplyDefault();
 renderRows();
@@ -1257,3 +1542,45 @@ document.getElementById('exportCSV')?.addEventListener('click', () => {
     status('Error exporting CSV. Please try again.');
   }
 });
+
+/* -------- Default State Initialization -------- */
+(function initDefaults() {
+  if (typeof DEFAULT_STATE !== 'undefined') {
+    // 1. Game Template
+    if (DEFAULT_STATE.gameTemplateId) {
+      if (gameTemplateSelect) {
+        gameTemplateSelect.value = DEFAULT_STATE.gameTemplateId;
+        gameTemplateSelect.dispatchEvent(new Event('change'));
+      }
+    } else {
+      // Fallback to default load if no template
+      firstLoadMaybeApplyDefault();
+    }
+
+    // 2. Preset (Timeout to ensure rows are rendered from template first)
+    if (DEFAULT_STATE.presetId) {
+      setTimeout(() => {
+        if (presetSelect) {
+          const p = getPresetById(DEFAULT_STATE.presetId);
+          if (p) {
+            presetSelect.value = DEFAULT_STATE.presetId;
+            applyPreset();
+          } else {
+            console.warn(`Default preset '${DEFAULT_STATE.presetId}' not found.`);
+          }
+        }
+      }, 50);
+    }
+
+    // 3. Gamification
+    if (DEFAULT_STATE.enableGamification) {
+      setTimeout(() => {
+        if (enableGamificationCheckbox && !enableGamificationCheckbox.checked) {
+          enableGamificationCheckbox.click(); // Use click to trigger listeners
+        }
+      }, 100);
+    }
+  } else {
+    firstLoadMaybeApplyDefault();
+  }
+})();

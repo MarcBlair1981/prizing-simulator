@@ -30,6 +30,15 @@ const PRESETS = [
         note: 'Top score (4/4) is Split. Others are Guaranteed.',
         prizeModes:  ['guaranteed', 'guaranteed', 'guaranteed', 'guaranteed', 'split']
     },
+      {
+        id: 'Pick3',
+        label: 'Pick3 • 8.50 (Split Jackpot)',
+        questions: 3,
+        oddsPerQuestion: 8.50,
+        prizes: [0, 0.5, 10, 500],
+        note: 'Top score (3/3) is Split. Others are Guaranteed.',
+        prizeModes:  ['guaranteed', 'guaranteed', 'guaranteed', 'split']
+    },
     {
         id: 'pick_em',
         label: 'NFL 10Q • 1.92 (Split Top 3)',
@@ -96,6 +105,15 @@ const PRESETS = [
         note: 'GCC perfect for WC',
         prizeModes: ['guaranteed', 'guaranteed', 'guaranteed', 'guaranteed', 'guaranteed', 'guaranteed', 'guaranteed', 'guaranteed', 'split', 'split']
     },
+      {
+        id: 'CO 10Q 1X2 COUPON',
+        label: 'CO_10Q_1.85',
+        questions: 10,
+        oddsPerQuestion: 1.85,
+        prizes: [0, 0, 0, 0, 0, 0, 0.1, 2, 5, 25, 100],
+        note: 'COMEON 10Q WEEKLY COUPON MADE FOR EPL',
+        prizeModes: ['guaranteed', 'guaranteed', 'guaranteed', 'guaranteed', 'guaranteed', 'guaranteed', 'guaranteed', 'guaranteed', 'guaranteed', 'guaranteed','guaranteed']
+    },
    {
         id: 'MMA 10Q Coupon',
         label: 'MMA 10Q Coupon',
@@ -153,6 +171,8 @@ const GAME_TEMPLATES = [
     { id: 'gcc9', label: 'Goals, Corners, Cards (9Q)', questions: 9, text: 'Prediction', odds: 4 },
     { id: 'nfl', label: "NFL Pick'em", questions: 10, text: 'Will the Chiefs win by more than 6?', odds: 1.92 }
 ];
+
+
 
 
 

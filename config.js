@@ -80,4 +80,17 @@ const CONFIG = {
   msgCSVError: "Error reading CSV: {0}"
 };
 
+/* Default Configuration for Startup */
+const DEFAULT_STATE = {
+  // Set to a template ID from presets.js (e.g., 'pick6', 'pick9') or null
+  gameTemplateId: 'coupon10',
+
+  // Set to a preset ID from presets.js (e.g., 'p6_basic', 'p9_million') or null
+  presetId: 'EPL 10Q Coupon',
+
+  // Set to true to automatically enable Gamification on load
+  enableGamification: true
+};
+
+
 

@@ -147,6 +147,12 @@
         <input id="observedCostRatio" type="number" min="0" max="2" step="0.01" value="1.00" style="max-width:120px">
         <div class="muted" style="font-size:11px;margin-top:4px;opacity:0.7">Default: 1.0 (common alternative: 0.3)
         </div>
+        <div style="margin-top:12px">
+          <label class="row" style="gap:6px;align-items:center;cursor:pointer">
+            <input id="enableGamification" type="checkbox">
+            <span class="muted" id="enableGamificationLabel">Enable Gamification / Points functionality</span>
+          </label>
+        </div>
       </div>
       <div class="card" style="background:rgba(96,165,250,0.1);border:1px solid rgba(96,165,250,0.3)">
         <div class="muted" id="statExpectedCostObserved">Expected Cost (Observed)</div>
@@ -170,6 +176,54 @@
     </div>
     <svg id="chart" class="chart" viewBox="0 0 1000 320" preserveAspectRatio="none"></svg>
     <div id="tt" class="tooltip" style="display:none"></div>
+  </div>
+
+  <!-- Gamification Section (Hidden by default) -->
+  <div id="gamificationSection" class="hidden"
+    style="margin-top:24px;border-top:1px solid rgba(59,80,111,0.5);padding-top:24px">
+    <h2 style="margin:0 0 12px 0;color:#facc15;display:flex;align-items:center;gap:8px">
+      <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+        <polygon
+          points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2">
+        </polygon>
+      </svg>
+      Gamification / Points Analysis
+    </h2>
+
+    <div class="grid g2">
+      <!-- Optimal Costs -->
+      <div class="card">
+        <div class="muted">Expected Total Points Cost (Optimal)</div>
+        <div id="gamifiedCost" class="big" style="color:#facc15">–</div>
+      </div>
+      <div class="card">
+        <div class="muted">Expected Cost Per User (Optimal)</div>
+        <div id="gamifiedCostPerUser" class="big" style="color:#facc15">–</div>
+      </div>
+
+      <!-- Observed Costs -->
+      <div class="card" style="background:rgba(250, 204, 21, 0.1);border:1px solid rgba(250, 204, 21, 0.3)">
+        <div class="muted" id="statGamifiedCostObserved">Expected Cost (Observed)</div>
+        <div id="gamifiedCostObserved" class="big" style="color:#facc15">–</div>
+      </div>
+      <div class="card" style="background:rgba(250, 204, 21, 0.1);border:1px solid rgba(250, 204, 21, 0.3)">
+        <div class="muted" id="statGamifiedCostPerUserObserved">Expected Cost Per User (Observed)</div>
+        <div id="gamifiedCostPerUserObserved" class="big" style="color:#facc15">–</div>
+      </div>
+    </div>
+
+    <div class="card" style="margin-top:12px">
+      <div class="muted">Expected users at each point total</div>
+      <table class="table" id="gamifiedDist"></table>
+    </div>
+
+    <div class="card" style="margin-top:12px;position:relative">
+      <div class="muted chart-title" style="margin-bottom:6px">
+        <b>Points distribution</b> — X: Points (0..110), Y: % of users.
+      </div>
+      <svg id="gamifiedChart" class="chart" viewBox="0 0 1000 320" preserveAspectRatio="none"></svg>
+      <div id="gamifiedTt" class="tooltip" style="display:none"></div>
+    </div>
   </div>
 
   <!-- Export Report Section -->
