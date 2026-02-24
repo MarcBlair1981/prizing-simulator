@@ -150,6 +150,7 @@ const UNIFORM_ODDS_PRESETS = [
     { value: 3.00, label: '33.3% (3.00)' },
     { value: 4.00, label: '25% (4.00)' },
     { value: 4.20, label: '23.8% (4.20)' },
+    { value: 4.50, label: '22.22% (4.50)' },
     { value: 4.80, label: '21% (4.80)' },
     { value: 6.00, label: '16.7% (6.00)' },
     { value: 7.50, label: '13.33% (7.50)' },
@@ -170,7 +171,9 @@ const GAME_TEMPLATES = [
     { id: 'goals8', label: 'How many goals? (8Q)', questions: 8, text: 'How many goals will be scored?', odds: 2 },
     { id: 'gcc9', label: 'Goals, Corners, Cards (9Q)', questions: 9, text: 'Prediction', odds: 4 },
     { id: 'nfl', label: "NFL Pick'em", questions: 10, text: 'Will the Chiefs win by more than 6?', odds: 1.92 }
+    { id: 'Runner Runner', label: "MLB Runs Predictor 6Q options", questions: 6, text: 'How many runs will be scored?', odds: 4.50 }
 ];
+
 
 
 
