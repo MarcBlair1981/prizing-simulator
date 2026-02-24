@@ -404,7 +404,10 @@ function drawDistributionTable(pmf, tableEl, chartEl, ttEl, prizeArr, modeArr, i
       <th>${CONFIG.tableHeaderProb}</th>
       ${impliedTh}
       <th>${CONFIG.tableHeaderUsers} ${participantsNum.toLocaleString()}</th>
-      <th>${CONFIG.tableHeaderPrize}<i class="info-icon" data-tooltip="Enter the prize amount for this score. This will be used to calculate expected costs.">i</i></th>
+      <th>${CONFIG.tableHeaderPrize}<i class="info-icon" data-tooltip="For calculation purposes, please use USD.
+Cash prizes are normally reserved for users achieving the two highest scores, and these prizes are generally split between the amount of users who hit that score.
+For prizes lower down the paytable, we generally reward users with Free Bet, Free Spins or Odds Boosts.
+Whatever the prize in mind, please enter the $ equivalent amount of the prize. For example, a $10 Free Bet, may have an expected cost of $6.">i</i></th>
       <th>${CONFIG.tableHeaderMode}</th>
       <th>${CONFIG.tableHeaderExpPrize}</th>
     </tr>`;
