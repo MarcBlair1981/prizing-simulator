@@ -481,7 +481,7 @@ function drawDistributionTable(pmf, tableEl, chartEl, ttEl, prizeArr, modeArr, i
 
   // Attach listeners to NEW inputs
   tableEl.querySelectorAll('input[type=number][data-k]').forEach(inp => {
-    inp.addEventListener('input', () => {
+    inp.addEventListener('change', () => {
       const k = Number(inp.getAttribute('data-k'));
       const val = Number(inp.value) || 0;
 
@@ -583,6 +583,7 @@ function calculateGamifiedPMF(ps) {
 
 /* Chart */
 function drawScoreChartWithCDF(pmf, participantsCount, chartEl, ttEl, isGamified = false) {
+  if (!chartEl) return;
   const w = 1000, h = 320, padL = 66, padR = 24, padT = 28, padB = 44;
   chartEl.innerHTML = '';
 
@@ -1065,9 +1066,7 @@ function parseCSVLine(line) {
 
 /* Init */
 initPresetSelect();
-initPresetSelect();
 initUniformOddsSelect();
-initGameTemplates();
 initGameTemplates();
 firstLoadMaybeApplyDefault();
 renderRows();
