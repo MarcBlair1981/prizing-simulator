@@ -114,6 +114,15 @@ const PRESETS = [
         note: 'COMEON 10Q WEEKLY COUPON MADE FOR EPL',
         prizeModes: ['guaranteed', 'guaranteed', 'guaranteed', 'guaranteed', 'guaranteed', 'guaranteed', 'guaranteed', 'guaranteed', 'guaranteed', 'guaranteed','guaranteed']
     },
+       {
+        id: 'NBA 8Q QUIZ',
+        label: 'NBA_8Q_QUIZ',
+        questions: 8,
+        oddsPerQuestion: 4.90,
+        prizes: [0, 0, 0, 1, 5, 25, 250, 1000, 25000],
+        note: '8Q MULTIPLE CHOICE BASKETBALL',
+        prizeModes: ['guaranteed', 'guaranteed', 'guaranteed', 'guaranteed', 'guaranteed', 'guaranteed', 'guaranteed', 'split','split']
+    },
    {
         id: 'MMA 10Q Coupon',
         label: 'MMA 10Q Coupon',
@@ -173,6 +182,7 @@ const GAME_TEMPLATES = [
     { id: 'nfl', label: "NFL Pick'em", questions: 10, text: 'Will the Chiefs win by more than 6?', odds: 1.92 },
     { id: 'Runner Runner', label: "MLB Runs Predictor 6Q options", questions: 6, text: 'How many runs will be scored?', odds: 4.50 }
 ];
+
 
 
 
