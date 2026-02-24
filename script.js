@@ -404,7 +404,7 @@ function drawDistributionTable(pmf, tableEl, chartEl, ttEl, prizeArr, modeArr, i
       <th>${CONFIG.tableHeaderProb}</th>
       ${impliedTh}
       <th>${CONFIG.tableHeaderUsers} ${participantsNum.toLocaleString()}</th>
-      <th>${CONFIG.tableHeaderPrize}</th>
+      <th>${CONFIG.tableHeaderPrize}<i class="info-icon" data-tooltip="Enter the prize amount for this score. This will be used to calculate expected costs.">i</i></th>
       <th>${CONFIG.tableHeaderMode}</th>
       <th>${CONFIG.tableHeaderExpPrize}</th>
     </tr>`;
