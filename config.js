@@ -92,5 +92,19 @@ const DEFAULT_STATE = {
   enableGamification: true
 };
 
+/**
+ * SECURITY_CONFIG
+ * Controls feature visibility based on a "Master Key" in the URL.
+ * Example: ?key=Splash_Master_2026
+ */
+const SECURITY_CONFIG = {
+  MASTER_KEY: 'Splash_Master_2026', // The passcode to unlock all features
+  FEATURES: {
+    'exportReportArea': { masterOnly: true },
+    'export': { masterOnly: true },
+    'loadCSV': { masterOnly: true }
+  }
+};
+
 
 

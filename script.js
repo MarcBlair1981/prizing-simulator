@@ -1068,11 +1068,39 @@ function parseCSVLine(line) {
 }
 
 /* Init */
+applySecurityVisibility();
 initPresetSelect();
 initUniformOddsSelect();
 initGameTemplates();
 firstLoadMaybeApplyDefault();
 renderRows();
+
+/**
+ * applySecurityVisibility
+ * Checks URL for MASTER_KEY and hides/shows elements based on SECURITY_CONFIG
+ */
+function applySecurityVisibility() {
+  const urlParams = new URLSearchParams(window.location.search);
+  const key = urlParams.get('key');
+  const isMaster = (key === SECURITY_CONFIG.MASTER_KEY);
+
+  for (const [id, config] of Object.entries(SECURITY_CONFIG.FEATURES)) {
+    const el = document.getElementById(id);
+    if (!el) continue;
+
+    if (config.masterOnly && !isMaster) {
+      el.style.display = 'none';
+    } else {
+      el.style.display = ''; // Restore default visibility
+    }
+  }
+
+  // Update version string if Master Mode is active
+  if (isMaster) {
+    const verEl = document.getElementById('version');
+    if (verEl) verEl.textContent += ' (Master)';
+  }
+}
 
 // CSV Upload Event Listeners
 document.getElementById('loadCSV')?.addEventListener('click', () => {
