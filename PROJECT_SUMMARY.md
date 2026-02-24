@@ -9,31 +9,9 @@
 ## 📋 Current Features
 
 ### Core Functionality
-... (unchanged) ...
-- ✅ **Secure Access Control**: Master Key system to toggle professional vs. client views
-
----
-
-## 🔧 Recent Changes (Feb 2026)
-
-### ✅ Master Key Security System
-**Issue**: Need to show different features to internal users vs. prospective clients without complex backend work.  
-**Solution**: Implemented a URL-based feature toggle.  
-**Key**: `Splash_Master_2026`  
-**Internal URL**: `?key=Splash_Master_2026`
-
-### ✅ Bug Fixes
-- **Prize Input Focus**: Fixed focus loss during multi-digit entry in the distribution table.
-- **Code Optimization**: Removed redundant initialization calls in `script.js`.
-- **UI Streamlining**: Removed gamification points distribution graph.
-- **Info Button**: Added specialized guidance tooltip to the Prize header.
-
----
-... (rest of file) ...
-
-### Core Functionality
 - ✅ **Question Management**: Create/edit up to 50 questions with decimal odds
 - ✅ **Probability Engine**: Poisson-binomial distribution for accurate score modeling
+- ✅ **Secure Access Control**: Master Key system to toggle professional vs. client views
 - ✅ **Dual Payout Modes**:
   - **Split**: Fixed pot shared among winners (cost = pot × P(≥1 winner))
   - **Guaranteed**: Each winner receives full prize (cost = expected winners × prize)
@@ -53,6 +31,22 @@
 - ✅ **Interactive Elements**: Hover effects, tooltips, real-time updates
 - ✅ **Professional Branding**: SPLASH Tech branded interface
 - ✅ **Clean Layout**: Consistent spacing and alignment *(Fixed Nov 29, 2025)*
+
+---
+
+## 🔧 Recent Changes (Feb 2026)
+
+### ✅ Master Key Security System
+**Issue**: Need to show different features to internal users vs. prospective clients without complex backend work.  
+**Solution**: Implemented a URL-based feature toggle.  
+**Key**: `Splash_Master_2026`  
+**Internal URL**: `?key=Splash_Master_2026`
+
+### ✅ Bug Fixes
+- **Prize Input Focus**: Fixed focus loss during multi-digit entry in the distribution table.
+- **Code Optimization**: Removed redundant initialization calls in `script.js`.
+- **UI Streamlining**: Removed gamification points distribution graph.
+- **Info Button**: Added specialized guidance tooltip to the Prize header.
 
 ---
 
@@ -96,31 +90,18 @@ prizing-simulator-29112025/
 2. **Coupon (10Q)** - 10 questions, 1.8 odds
 3. **8 Question Predictor Quiz** - 8 questions, 4.8 odds
 4. **How many goals? (6Q)** - 6 questions, 4.0 odds
-5. **How many goals? (8Q)** - 8 questions, 2.0 odds
+5. **How many goals? (8Q)** - 2.0 odds
 6. **Goals, Corners, Cards (9Q)** - 9 questions, 4.0 odds
 7. **NFL Pick'em** - 10 questions, 1.92 odds
 
 ---
 
-## 🔧 Recent Changes (Nov 29, 2025)
+## 🔧 Previous History (Nov 29, 2025)
 
 ### ✅ UI Layout Fix
 **Issue**: The "Operations" section had misaligned dropdown and button  
 **Solution**: Standardized layout to match "Paytable Presets" section  
 **Result**: Both sections now have dropdown and buttons on the same line
-
-**Before:**
-```
-Operations
-[Dropdown spanning full width]
-[Apply Odds button below]
-```
-
-**After:**
-```
-Operations
-[Dropdown ▼] [Apply Odds]
-```
 
 ---
 
@@ -281,11 +262,11 @@ For each score (0/N to N/N):
 ---
 
 ## 🔐 Data Privacy
-
 - **No Server**: All calculations performed client-side
 - **No Tracking**: No analytics or user tracking
 - **Local Only**: Data never leaves user's browser
 - **Export Control**: User decides what to export/share
+- **Secure Access Control**: URL-based Master Mode for feature visibility
 
 ---
 
@@ -362,6 +343,13 @@ Edit `style.css` to modify:
 
 ## 📝 Version History
 
+### v3.2 (February 24, 2026)
+- ✅ Implemented **Master Key Security System** for feature visibility
+- ✅ Fixed **Prize Input Focus** bug for multi-digit entry
+- ✅ Refined **Info Button** with detailed prize guidance
+- ✅ Cleaned up code redundancy in `script.js`
+- ✅ Removed redundant gamification graph
+
 ### v3.1 (November 29, 2025)
 - ✅ Fixed UI layout alignment for Operations and Paytable Presets
 - ✅ Standardized button/dropdown positioning
@@ -373,27 +361,6 @@ Edit `style.css` to modify:
 - Game templates
 - CSV import
 - Enhanced UI with modern design
-
----
-
-## 🔮 Future Roadmap
-
-See `ENHANCEMENT_SUGGESTIONS.md` for detailed proposals:
-
-1. **Phase 1** (Quick Wins):
-   - Enhanced JSON export with full state
-   - Load JSON feature
-   - Basic non-monetary prize support
-
-2. **Phase 2** (Core Features):
-   - Named saves system (LocalStorage)
-   - Full non-monetary prize calculator
-   - Save as preset functionality
-
-3. **Phase 3** (Advanced):
-   - Comparison mode
-   - Validation system with smart warnings
-   - Full preset management UI
 
 ---
 
