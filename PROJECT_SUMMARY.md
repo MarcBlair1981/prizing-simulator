@@ -1,12 +1,35 @@
 # SPLASH Tech Prize Simulator - Project Summary
 
-**Version:** 3.1  
-**Last Updated:** November 29, 2025  
-**Status:** ✅ Fully Functional
+**Version:** 3.2  
+**Last Updated:** February 24, 2026  
+**Status:** ✅ Fully Functional | 🔐 Secure
 
 ---
 
 ## 📋 Current Features
+
+### Core Functionality
+... (unchanged) ...
+- ✅ **Secure Access Control**: Master Key system to toggle professional vs. client views
+
+---
+
+## 🔧 Recent Changes (Feb 2026)
+
+### ✅ Master Key Security System
+**Issue**: Need to show different features to internal users vs. prospective clients without complex backend work.  
+**Solution**: Implemented a URL-based feature toggle.  
+**Key**: `Splash_Master_2026`  
+**Internal URL**: `?key=Splash_Master_2026`
+
+### ✅ Bug Fixes
+- **Prize Input Focus**: Fixed focus loss during multi-digit entry in the distribution table.
+- **Code Optimization**: Removed redundant initialization calls in `script.js`.
+- **UI Streamlining**: Removed gamification points distribution graph.
+- **Info Button**: Added specialized guidance tooltip to the Prize header.
+
+---
+... (rest of file) ...
 
 ### Core Functionality
 - ✅ **Question Management**: Create/edit up to 50 questions with decimal odds

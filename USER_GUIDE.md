@@ -428,6 +428,31 @@ To customize:
 
 ---
 
-**Version:** 3.1  
+---
+
+## Master Mode & Feature Visibility
+
+To support both internal Splash operations and prospective client demonstrations, the simulator includes a **Master Mode** system.
+
+### Viewing Modes
+
+1. **Client Mode (Default)**
+   - **Access**: Standard URL (e.g., `simulator.splash-tech.io`)
+   - **Visible Features**: Basic simulator tools, game templates, payouts.
+   - **Hidden Features**: Export Client Report, JSON Export, Load CSV.
+   - **Use Case**: Safe for sharing with prospects; hides advanced or internal tools.
+
+2. **Master Mode (Unlocked)**
+   - **Access**: URL with Master Key (e.g., `...?key=Splash_Master_2026`)
+   - **Visible Features**: ALL features, including Client Report generation and data porting.
+   - **Confirmation**: The version number in the top-right will show `(Master)`.
+   - **Use Case**: Internal Splash use for report generation and game configuration.
+
+### Security
+The "Master Key" approach is a zero-backend security measure. By using an unguessable 16+ character passcode in the URL, internal tools remain hidden from casual users while remaining easily accessible to the team without requiring additional logins or software.
+
+---
+
+**Version:** 3.2  
 **Brand:** SPLASH Tech  
 **Purpose:** Free-to-Play Cost Projection Tools

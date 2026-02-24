@@ -1,6 +1,6 @@
-# Walkthrough: Visual Improvements & Refactoring
+# Walkthrough: Simulator Enhancements (Feb 2026)
 
-I have completed the visual overhaul and code refactoring for the F2P Interactive Odds Demo.
+I have completed the prioritized bug fixes, info button refinement, and implemented the **Master Key Security System**.
 
 ## Changes
 
@@ -23,10 +23,26 @@ I have completed the visual overhaul and code refactoring for the F2P Interactiv
     - `style.css`: All visual styles.
     - `script.js`: Application logic and interactivity.
 
-### 4. New Features
-- **Game Templates**: Added a dropdown to quickly load predefined game structures (e.g., "Pick 6", "Coupon").
-    - Populates question text and odds automatically.
-    - Supports custom odds defaults (e.g., 8.50 for Pick 6).
+### 4. Bug Fixes (Feb 24, 2026)
+- **Prize Input Focus**: Fixed an issue where prize inputs lost focus after typing a single digit. This was achieved by switching from `input` to `change` events for re-rendering.
+- **Initialization Cleanup**: Removed redundant calls to initialization functions in `script.js` to improve performance and stability.
+- **Gamification Graph**: Removed the redundant distribution graph from the gamification section as requested.
+
+### 5. Info Button Refinement
+- **Prominent Info Icon**: Added a highlighted "i" icon to the Prize header with a glowing hover effect.
+- **Detailed Guidance**: The tooltip now provides exhaustive multi-line guidance on USD usage, prize splitting, and non-monetary prize valuation.
+
+### 6. Master Key Security System
+- **Feature Visibility**: Implemented a system to hide sensitive features (Export Client Report, JSON Export, Load CSV) from prospective clients by default.
+- **Master Mode Unlock**: Features are automatically revealed if a secret "Master Key" is present in the URL.
+- **Zero Backend**: This is a pure frontend implementation using URL parameters and obscured keys, requiring no complex server setup.
+
+## Internal Master Mode URL
+For full visibility and access to all professional tools, use the following URL format:
+`.../index.html?key=Splash_Master_2026`
+
+> [!IMPORTANT]
+> Share only the base URL (without the `?key=...` parameter) with prospective clients to ensure they see the simplified, public-facing version.
 
 ## Verification Results
 
