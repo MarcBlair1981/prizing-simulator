@@ -170,9 +170,10 @@ const GAME_TEMPLATES = [
     { id: 'goals6', label: 'How many goals? (6Q)', questions: 6, text: 'How many goals will be scored?', odds: 4 },
     { id: 'goals8', label: 'How many goals? (8Q)', questions: 8, text: 'How many goals will be scored?', odds: 2 },
     { id: 'gcc9', label: 'Goals, Corners, Cards (9Q)', questions: 9, text: 'Prediction', odds: 4 },
-    { id: 'nfl', label: "NFL Pick'em", questions: 10, text: 'Will the Chiefs win by more than 6?', odds: 1.92 }
+    { id: 'nfl', label: "NFL Pick'em", questions: 10, text: 'Will the Chiefs win by more than 6?', odds: 1.92 },
     { id: 'Runner Runner', label: "MLB Runs Predictor 6Q options", questions: 6, text: 'How many runs will be scored?', odds: 4.50 }
 ];
+
 
 
 
