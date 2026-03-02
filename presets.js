@@ -40,6 +40,15 @@ const PRESETS = [
         prizeModes:  ['guaranteed', 'guaranteed', 'guaranteed', 'split']
     },
     {
+        id: 'Horses_ZA',
+        label: 'Horses ZA • 3.00 (Split Jackpot)',
+        questions: 8,
+        oddsPerQuestion: 3.00,
+        prizes: [0, 0, 0, 0, 0, 1, 6, 60, 1200],
+        note: 'Top score is Split. Others are Guaranteed.',
+        prizeModes:  ['guaranteed', 'guaranteed', 'guaranteed', 'guaranteed', 'guaranteed', 'guaranteed','guaranteed', 'guaranteed', 'split']
+    },
+    {
         id: 'pick_em',
         label: 'NFL 10Q • 1.92 (Split Top 3)',
         questions: 10,
@@ -182,6 +191,7 @@ const GAME_TEMPLATES = [
     { id: 'nfl', label: "NFL Pick'em", questions: 10, text: 'Will the Chiefs win by more than 6?', odds: 1.92 },
     { id: 'Runner Runner', label: "MLB Runs Predictor 6Q options", questions: 6, text: 'How many runs will be scored?', odds: 4.50 }
 ];
+
 
 
 
